@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LIGHT_THEME, DARK_THEME } from "../assets/colors/colors";
+import { LIGHT_THEME, DARK_THEME } from "../theme/colors";
 
 interface ThemeContextData {
   theme: typeof LIGHT_THEME;

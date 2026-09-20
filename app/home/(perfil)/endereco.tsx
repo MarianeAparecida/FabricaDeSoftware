@@ -5,7 +5,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import { supabase } from "../../../src/services/supabase";
 import { Top_Bar } from "../../../src/components/top_bar";
 import { useTheme } from "../../../src/contexts/ThemeContext";
-import { COLORS } from "@/src/assets/colors/colors";
+import { COLORS } from "@/src/theme/colors";
 import { KeyboardAvoidingView } from "react-native";
 
 export default function Endereco() {

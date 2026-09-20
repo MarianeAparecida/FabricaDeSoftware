@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { Top_Bar } from "../../../src/components/top_bar";
 import { useTheme } from "../../../src/contexts/ThemeContext";
-import { COLORS } from "@/src/assets/colors/colors";
+import { COLORS } from "@/src/theme/colors";
 
 export default function CentralAjuda() {
     const { theme } = useTheme();

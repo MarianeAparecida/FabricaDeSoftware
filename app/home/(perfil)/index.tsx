@@ -6,7 +6,7 @@ import { Perfil_Styles } from "../../../src/styles/perfil_styles";
 import { AuthContext } from "../../../src/contexts/AuthContext";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../../src/contexts/ThemeContext";
-import { COLORS } from "@/src/assets/colors/colors";
+import { COLORS } from "@/src/theme/colors";
 
 
 export default function Perfil() {

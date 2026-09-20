@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Platform, StatusBar, StyleSheet } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { COLORS } from "../assets/colors/colors";
+import { COLORS } from "../theme/colors";
 import { useTheme } from "../contexts/ThemeContext";
 
 export const Top_Bar = () => {

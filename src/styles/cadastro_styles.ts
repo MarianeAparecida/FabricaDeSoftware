@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet } from "react-native";
-import { COLORS } from "../assets/colors/colors";
+import { COLORS } from "../theme/colors";
 
 
 export const CadastroStyles = (theme: any) => StyleSheet.create({

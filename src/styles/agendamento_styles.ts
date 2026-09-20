@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { COLORS } from "../assets/colors/colors";
+import { COLORS } from "../theme/colors";
 import { Dimensions } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 
