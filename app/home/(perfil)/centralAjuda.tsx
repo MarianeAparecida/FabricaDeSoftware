@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
-import { Top_Bar } from "../../../src/components/top_bar";
+import { Top_Bar } from "../../../src/components/topBar";
 import { useTheme } from "../../../src/contexts/ThemeContext";
 import { COLORS } from "@/src/theme/colors";
 

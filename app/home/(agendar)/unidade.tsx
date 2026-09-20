@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { buscarUnidadesSaude, UnidadeSaude } from "../../../src/services/consultas";
 import { useTheme } from "../../../src/contexts/ThemeContext";
 import { router } from "expo-router";
-import { Top_Bar } from "../../../src/components/top_bar";
+import { Top_Bar } from "../../../src/components/topBar";
 import { useQuery } from "@/src/services/useQuery";
 import BarraProgresso from "../../../src/components/barra_progresso";
 

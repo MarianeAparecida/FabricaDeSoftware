@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from "react-native";
 import React, { useState, useContext, useEffect } from "react";
-import { Agendamento_Styles } from "../../../src/styles/agendamento_styles";
-import { Top_Bar } from "../../../src/components/top_bar";
+import { Agendamento_Styles } from "../../../src/styles/agendamentoStyles"
+import { Top_Bar } from "../../../src/components/topBar";
 import { AuthContext } from "../../../src/contexts/AuthContext";
 import { criarConsulta, buscarPacientePorAuthId, combinarDataHora, buscarHorariosOcupados, UnidadeSaude } from "../../../src/services/consultas";
 import { useQuery } from "@/src/services/useQuery";

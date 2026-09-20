@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
-import { Home_Styles } from "../../src/styles/home_styles";
-import { Top_Bar } from "../../src/components/top_bar";
+import { Home_Styles } from "../../src/styles/homeStyles";
+import { Top_Bar } from "../../src/components/topBar";
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";

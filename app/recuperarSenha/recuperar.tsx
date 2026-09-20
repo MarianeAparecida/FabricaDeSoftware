@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Alert, ActivityIndicator, } from "react-native";
-import { Recuperar_Styles } from "../../src/styles/recuperar_styles";
-import { Top_Bar } from "../../src/components/top_bar";
+import { Recuperar_Styles } from "../../src/styles/recuperarStyles";
+import { Top_Bar } from "../../src/components/topBar";
 import { TextInput as PaperInput } from "react-native-paper";
 import { useNavigation, useRouter } from "expo-router";
 import BarraProgresso from "../../src/components/barra_progresso";
-import { formatCPF } from "../../src/components/format_cpf";
+import { formatCPF } from "../../src/utils/formatarCpf";
 import { supabase } from "../../src/services/supabase";
 import { useTheme } from "../../src/contexts/ThemeContext";
 

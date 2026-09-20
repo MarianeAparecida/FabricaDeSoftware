@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
-import { Top_Bar } from '../../src/components/top_bar';
-import { Consultas_Styles, Consultas_Styles as styles } from '../../src/styles/consultas_styles';
+import { Top_Bar } from '../../src/components/topBar';
+import { Consultas_Styles, Consultas_Styles as styles } from '../../src/styles/consultasStyles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Modal from "react-native-modal";
 import { AuthContext } from '../../src/contexts/AuthContext';

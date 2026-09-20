@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { useTheme } from '../../src/contexts/ThemeContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 
 export const Historico_Styles = (theme: any) => StyleSheet.create({

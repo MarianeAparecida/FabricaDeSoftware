@@ -9,8 +9,8 @@ import {
   Platform,
 } from "react-native";
 import * as Linking from "expo-linking";
-import { Alterar_Styles } from "../../src/styles/alterar_styles";
-import { Top_Bar } from "../../src/components/top_bar";
+import { Alterar_Styles } from "../../src/styles/alterarStyles";
+import { Top_Bar } from "../../src/components/topBar";
 import { TextInput as PaperInput } from "react-native-paper";
 import { useRouter } from "expo-router";
 import BarraProgresso from "../../src/components/barra_progresso";

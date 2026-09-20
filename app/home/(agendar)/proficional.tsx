@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, FlatList } from "react-native";
 import React, { useState } from "react";
 import { useTheme } from "../../../src/contexts/ThemeContext";
 import { router, useLocalSearchParams } from "expo-router";
-import { Top_Bar } from "../../../src/components/top_bar";
+import { Top_Bar } from "../../../src/components/topBar";
 import BarraProgresso from "../../../src/components/barra_progresso";
 
 const tiposProfissionais = [

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Top_Bar } from '../../src/components/top_bar';
-import { Medicamentos_Styles} from '../../src/styles/medicamentos_styles';
+import { Top_Bar } from '../../src/components/topBar';
+import { Medicamentos_Styles} from '../../src/styles/medicamentosStyles';
 import { CampoPesquisa } from '../../src/components/campo_pesquisa';
 import { supabase } from '../../src/services/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';

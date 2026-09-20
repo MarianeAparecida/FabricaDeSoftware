@@ -1,8 +1,8 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Top_Bar } from '../../src/components/top_bar';
-import { Historico_Styles} from '../../src/styles/historico_styles';
+import { Top_Bar } from '../../src/components/topBar';
+import { Historico_Styles} from '../../src/styles/historicoStyles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AuthContext } from '../../src/contexts/AuthContext';
 import { buscarPacientePorAuthId, buscarConsultasPaciente } from '../../src/services/consultas';
