@@ -155,19 +155,15 @@ export async function cancelarConsulta(consultaId: number) {
  * Busca horários ocupados para uma data e unidade específicas
  */
 export async function buscarHorariosOcupados(data: string, unidadeId?: number): Promise<string[]> {
-    const inicioDia = `${data}T00:00:00`;
-    const fimDia = `${data}T23:59:59`;
-
-    const query = supabase
-        .from('consulta')
-        .select('data_hora')
-        .gte('data_hora', inicioDia)
-        .lte('data_hora', fimDia)
-        .neq('status', 'cancelada')
-        .eq('unidade_saude_id', unidadeId || 0);
+    // RPC em vez de ler a tabela: o RLS só mostra as consultas do próprio paciente,
+    // e aqui precisamos dos horários ocupados por qualquer paciente.
+    const query = supabase.rpc('horarios_ocupados', {
+        p_data: data,
+        p_unidade_id: unidadeId || 0,
+    });
 
     // Usamos a mestra para garantir o timeout de 10s
-    const resultado = await executarQuery<any[]>(query, 10000, 'Erro ao buscar horários.');
+    const resultado = await executarQuery<string[]>(query, 10000, 'Erro ao buscar horários.');
 
     // Se der erro ou não vier nada, retorna lista vazia
     if (resultado.error || !resultado.data) {
@@ -175,8 +171,8 @@ export async function buscarHorariosOcupados(data: string, unidadeId?: number): 
     }
 
     // Transforma o formato do banco (ISO) para apenas o horário (HH:mm)
-    return resultado.data.map(c => {
-        const dataHora = new Date(c.data_hora);
+    return resultado.data.map(dataHoraIso => {
+        const dataHora = new Date(dataHoraIso);
         return dataHora.toLocaleTimeString('pt-BR', { 
             hour: '2-digit', 
             minute: '2-digit' 
