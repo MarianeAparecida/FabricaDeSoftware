@@ -3,12 +3,29 @@ import React, { useState, useContext, useEffect } from "react";
 import { Agendamento_Styles } from "../../../src/styles/agendamentoStyles"
 import { Top_Bar } from "../../../src/components/topBar";
 import { AuthContext } from "../../../src/contexts/AuthContext";
-import { criarConsulta, buscarPacientePorAuthId, combinarDataHora, buscarHorariosOcupados, UnidadeSaude } from "../../../src/services/consultas";
+import {
+    criarConsulta,
+    buscarPacientePorAuthId,
+    combinarDataHora,
+    buscarHorariosDisponiveis,
+    UnidadeSaude,
+    Profissional,
+} from "../../../src/services/consultas";
 import { useQuery } from "@/src/services/useQuery";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../../src/contexts/ThemeContext";
 import CustomCalendar from "../../../src/components/CustomCalendar";
 import BarraProgresso from "../../../src/components/barra_progresso";
+
+function parseParam<T>(value: string | string[] | undefined): T | null {
+    if (typeof value !== "string") return null;
+
+    try {
+        return JSON.parse(value) as T;
+    } catch {
+        return null;
+    }
+}
 
 export default function Agendamento() {
     const { theme } = useTheme();
@@ -19,52 +36,34 @@ export default function Agendamento() {
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [unidadeSelecionada, setUnidadeSelecionada] = useState<UnidadeSaude | null>(null);
-    const [tipoProfissional, setTipoProfissional] = useState<string | null>(null);
+    const [profissionalSelecionado, setProfissionalSelecionado] = useState<Profissional | null>(null);
 
     const { user } = useContext(AuthContext);
 
-    const todosHorarios = [
-        '08:00', '08:30', '09:00', '09:30',
-        '10:00', '10:30', '11:00', '11:30',
-        '12:00', '12:30', '13:00', '13:30',
-        '14:00', '14:30', '15:00', '15:30',
-        '16:00', '16:30', '17:00', '17:30'
-    ];
-
     useEffect(() => {
-        if (typeof params.unidadeSelecionada === 'string') {
-            try {
-                setUnidadeSelecionada(JSON.parse(params.unidadeSelecionada));
-            } catch (e) { router.back(); }
-        }
-        if (typeof params.tipo === 'string') {
-            setTipoProfissional(params.tipo);
-        }
-    }, [params.unidadeSelecionada, params.tipo]);
+        const unidade = parseParam<UnidadeSaude>(params.unidadeSelecionada);
+        const profissional = parseParam<Profissional>(params.profissionalSelecionado);
 
+        setUnidadeSelecionada(unidade);
+        setProfissionalSelecionado(profissional);
+        setSelectedTime(null);
+    }, [params.unidadeSelecionada, params.profissionalSelecionado]);
 
-    const { data: horariosDisponiveis, loading: loadingHorarios } = useQuery(async () => {
-        if (!day || !unidadeSelecionada) return { data: [], error: null };
-
-        const ocupados = await buscarHorariosOcupados(day, unidadeSelecionada.id);
-        let disponiveis = todosHorarios.filter(h => !ocupados.includes(h));
-
-        // Filtro de horário retroativo (se for hoje)
-        const now = new Date();
-        if (day === now.toISOString().split('T')[0]) {
-            const currentMin = now.getHours() * 60 + now.getMinutes();
-            disponiveis = disponiveis.filter(h => {
-                const [hr, min] = h.split(":").map(Number);
-                return (hr * 60 + min) > currentMin;
-            });
+    const {
+        data: horariosDisponiveis,
+        loading: loadingHorarios,
+        error: erroHorarios,
+    } = useQuery<string[]>(async () => {
+        if (!day || !unidadeSelecionada || !profissionalSelecionado) {
+            return { data: [], error: null };
         }
 
-        return { data: disponiveis, error: null };
-    }, [day, unidadeSelecionada?.id]);
+        return buscarHorariosDisponiveis(day, unidadeSelecionada.id, profissionalSelecionado.id);
+    }, [day, unidadeSelecionada?.id, profissionalSelecionado?.id]);
 
     const handleAgendarConsulta = async () => {
         if (!user) return Alert.alert("Erro", "Faça login para continuar.");
-        if (!tipoProfissional) return Alert.alert("Erro", "Profissional não selecionado")
+        if (!profissionalSelecionado) return Alert.alert("Erro", "Profissional não selecionado.");
         if (!unidadeSelecionada) return Alert.alert("Erro", "Unidade não carregada.");
         if (!day) return Alert.alert("Atenção", "Selecione uma data.");
         if (!selectedTime) return Alert.alert("Atenção", "Selecione um horário.");
@@ -75,7 +74,7 @@ export default function Agendamento() {
             const { data: paciente } = await buscarPacientePorAuthId(user.id);
             if (!paciente) {
                 Alert.alert("Erro", "Complete seu cadastro de paciente.");
-                setLoading(false); // Importante resetar loading
+                setLoading(false);
                 return;
             }
 
@@ -83,17 +82,18 @@ export default function Agendamento() {
 
             const { error } = await criarConsulta({
                 paciente_id: paciente.id,
+                profissional_id: profissionalSelecionado.id,
                 unidade_saude_id: unidadeSelecionada.id,
                 data_hora: dataHora,
                 status: "agendada",
-                especialidade: tipoProfissional
+                especialidade: profissionalSelecionado.especialidade || profissionalSelecionado.nome
             });
 
             if (error) throw new Error("Falha na criação");
 
             Alert.alert(
                 "Sucesso",
-                `Consulta com ${tipoProfissional} marcada na ${unidadeSelecionada.nome} em ${formatarData(day)} às ${selectedTime}`,
+                `Consulta com ${profissionalSelecionado.nome} marcada na ${unidadeSelecionada.nome} em ${formatarData(day)} às ${selectedTime}`,
                 [{
                     text: "OK",
                     onPress: () => {
@@ -119,6 +119,10 @@ export default function Agendamento() {
         return `${d}/${m}/${y}`;
     };
 
+    const profissionalLabel = profissionalSelecionado
+        ? `${profissionalSelecionado.nome}${profissionalSelecionado.especialidade ? ` - ${profissionalSelecionado.especialidade}` : ""}`
+        : "Profissional não selecionado";
+
     return (
         <View style={styles.container}>
             <Top_Bar />
@@ -128,7 +132,6 @@ export default function Agendamento() {
             >
                 <BarraProgresso etapaAtual={3} totalEtapas={3} />
 
-                {/* Renderização condicional da unidade */}
                 {unidadeSelecionada ? (
                     <View style={{
                         backgroundColor: theme.primary,
@@ -138,7 +141,7 @@ export default function Agendamento() {
                         <View style={{ flex: 1 }}>
                             <Text style={{ color: theme.background, fontSize: 12 }}>Dados selecionados:</Text>
                             <Text style={{ color: theme.background, fontSize: 14, fontWeight: "bold", marginTop: 3 }}>
-                                {tipoProfissional}
+                                {profissionalLabel}
                             </Text>
                             <Text style={{ color: theme.background, fontSize: 11, marginTop: 2 }}>
                                 {unidadeSelecionada.nome} / {unidadeSelecionada.endereco}
@@ -168,11 +171,15 @@ export default function Agendamento() {
 
                 <View style={{ marginTop: 15, paddingHorizontal: 10 }}>
                     <Text style={{ fontSize: 18, color: theme.primary, fontWeight: "600", marginBottom: 10 }}>
-                        Horários disponíveis {day && `(${horariosDisponiveis?.length})`}
+                        Horários disponíveis {day && `(${horariosDisponiveis?.length || 0})`}
                     </Text>
 
                     {loadingHorarios ? (
                         <ActivityIndicator size="large" color={theme.primary} />
+                    ) : erroHorarios ? (
+                        <Text style={{ color: theme.danger, fontStyle: 'italic', padding: 10 }}>
+                            {erroHorarios}
+                        </Text>
                     ) : (
                         <View style={styles.horarios_box}>
                             {!loadingHorarios && day && (!horariosDisponiveis || horariosDisponiveis.length === 0) ? (
@@ -209,9 +216,9 @@ export default function Agendamento() {
             }}>
                 <TouchableOpacity
                     onPress={handleAgendarConsulta}
-                    disabled={!selectedTime || !day || loading || !unidadeSelecionada}
+                    disabled={!selectedTime || !day || loading || !unidadeSelecionada || !profissionalSelecionado}
                     style={{
-                        backgroundColor: (!selectedTime || !day || loading || !unidadeSelecionada) ? theme.placeholder : theme.primary,
+                        backgroundColor: (!selectedTime || !day || loading || !unidadeSelecionada || !profissionalSelecionado) ? theme.placeholder : theme.primary,
                         height: 50, borderRadius: 8, alignItems: "center", justifyContent: "center", marginBottom: 10
                     }}
                 >

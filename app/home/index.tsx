@@ -172,7 +172,7 @@ export default function Home() {
                     <TouchableOpacity
                         style={styles.servico_item}
                         activeOpacity={0.7}
-                        onPress={() => router.push("/home/agendar")}
+                        onPress={() => router.push("/home/(agendar)/unidade")}
                     >
                         <FontAwesome6 name="calendar-plus" size={30} color={theme.primary} />
                         <Text style={styles.servico_text}>Agendar consulta</Text>

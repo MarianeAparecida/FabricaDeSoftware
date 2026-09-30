@@ -1,50 +1,60 @@
-import { View, Text, TouchableOpacity, FlatList } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert } from "react-native";
 import React, { useState } from "react";
 import { useTheme } from "../../../src/contexts/ThemeContext";
 import { router, useLocalSearchParams } from "expo-router";
 import { Top_Bar } from "../../../src/components/topBar";
 import BarraProgresso from "../../../src/components/barra_progresso";
+import { useQuery } from "@/src/services/useQuery";
+import {
+    buscarProfissionaisPorUnidade,
+    Profissional,
+    UnidadeSaude,
+} from "../../../src/services/consultas";
 
-const tiposProfissionais = [
-    { id: 1, nome: "Clínico Geral" },
-    { id: 2, nome: "Dentista" },
-    { id: 3, nome: "Psicólogo" },
-    { id: 4, nome: "Pediatra" },
-    { id: 5, nome: "Ortopedista" },
-    { id: 6, nome: "Ginecologista" },
-    { id: 7, nome: "Cardiologista" },
-    { id: 8, nome: "Nutricionista" },
-];
+function parseUnidade(value: string | null): UnidadeSaude | null {
+    if (!value) return null;
 
-export default function SelecionarTipo() {
+    try {
+        return JSON.parse(value) as UnidadeSaude;
+    } catch {
+        return null;
+    }
+}
+
+export default function SelecionarProfissional() {
     const { theme } = useTheme();
     const params = useLocalSearchParams();
+    const unidadeParam = typeof params.unidadeSelecionada === "string" ? params.unidadeSelecionada : null;
+    const unidadeSelecionada = parseUnidade(unidadeParam);
 
-    // O valor recebido é a STRING JSON da unidade
-    const unidadeSelecionada = params.unidadeSelecionada; 
+    const [selecionado, setSelecionado] = useState<Profissional | null>(null);
 
-    // O estado armazena o nome do profissional selecionado (string)
-    const [selecionado, setSelecionado] = useState<string | null>(null);
+    const { data: profissionais, loading, error } = useQuery<Profissional[]>(async () => {
+        if (!unidadeSelecionada) {
+            return { data: [], error: null };
+        }
+
+        return buscarProfissionaisPorUnidade(unidadeSelecionada.id);
+    }, [unidadeSelecionada?.id]);
 
     const handleNext = () => {
-        // Validação: precisa ter um profissional e a unidade (que é a string JSON)
+        if (!unidadeParam || !unidadeSelecionada) {
+            Alert.alert("Erro", "Dados da unidade de saúde não encontrados.");
+            router.back();
+            return;
+        }
+
         if (!selecionado) {
-            alert("Por favor, selecione um tipo de profissional.");
+            Alert.alert("Atenção", "Selecione um profissional.");
             return;
         }
-        // Se a unidadeSelecionada não for uma string (ou for null/undefined), algo deu errado na tela anterior
-        if (typeof unidadeSelecionada !== 'string') {
-            alert("Erro: Dados da unidade de saúde não encontrados.");
-            router.back(); // Volta para a tela anterior
-            return;
-        }
+
         router.push({
             pathname: "/home/agendar",
             params: {
-                tipo: selecionado,
-                // Repassando a STRING JSON da unidade para a próxima tela
-                unidadeSelecionada: unidadeSelecionada 
-            }
+                unidadeSelecionada: unidadeParam,
+                profissionalSelecionado: JSON.stringify(selecionado),
+            },
         });
     };
 
@@ -63,40 +73,68 @@ export default function SelecionarTipo() {
                         marginTop: 10
                     }}
                 >
-                    Selecione o Tipo de Profissional
+                    Selecione o Profissional
                 </Text>
 
-                <FlatList
-                    data={tiposProfissionais}
-                    keyExtractor={item => item.id.toString()}
-                    renderItem={({ item }) => {
-                        const ativo = selecionado === item.nome;
+                {loading ? (
+                    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                        <ActivityIndicator size="large" color={theme.primary} />
+                        <Text style={{ color: theme.text, marginTop: 10 }}>Carregando profissionais...</Text>
+                    </View>
+                ) : error ? (
+                    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                        <Text style={{ color: theme.danger, textAlign: "center" }}>{error}</Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={profissionais || []}
+                        keyExtractor={item => item.id.toString()}
+                        ListEmptyComponent={
+                            <Text style={{ color: theme.text, textAlign: "center", marginTop: 20 }}>
+                                Nenhum profissional cadastrado para esta unidade.
+                            </Text>
+                        }
+                        renderItem={({ item }) => {
+                            const ativo = selecionado?.id === item.id;
 
-                        return (
-                            <TouchableOpacity
-                                onPress={() => setSelecionado(item.nome)}
-                                style={{
-                                    padding: 15,
-                                    borderRadius: 8,
-                                    marginBottom: 10,
-                                    borderWidth: ativo ? 2 : 1,
-                                    borderColor: ativo ? theme.primary : theme.placeholder,
-                                    backgroundColor: ativo ? theme.primary + "20" : theme.card
-                                }}
-                            >
-                                <Text
+                            return (
+                                <TouchableOpacity
+                                    onPress={() => setSelecionado(item)}
                                     style={{
-                                        fontSize: 16,
-                                        fontWeight: "600",
-                                        color: theme.text
+                                        padding: 15,
+                                        borderRadius: 8,
+                                        marginBottom: 10,
+                                        borderWidth: ativo ? 2 : 1,
+                                        borderColor: ativo ? theme.primary : theme.placeholder,
+                                        backgroundColor: ativo ? theme.primary + "20" : theme.card
                                     }}
                                 >
-                                    {item.nome}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    }}
-                />
+                                    <Text
+                                        style={{
+                                            fontSize: 16,
+                                            fontWeight: "600",
+                                            color: theme.text
+                                        }}
+                                    >
+                                        {item.nome}
+                                    </Text>
+
+                                    {item.especialidade && (
+                                        <Text style={{ fontSize: 13, color: theme.placeholder, marginTop: 4 }}>
+                                            {item.especialidade}
+                                        </Text>
+                                    )}
+
+                                    {item.registro_conselho && (
+                                        <Text style={{ fontSize: 12, color: theme.placeholder, marginTop: 2 }}>
+                                            Registro: {item.registro_conselho}
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        }}
+                    />
+                )}
 
                 <TouchableOpacity
                     onPress={handleNext}
