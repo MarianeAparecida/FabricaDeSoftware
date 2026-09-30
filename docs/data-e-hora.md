@@ -41,6 +41,7 @@ tela mostra 15/10/2026 14:00
 | `consulta.data_hora` | `timestamptz`: um instante absoluto, sem ambiguidade. |
 | `unidade_saude.fuso_horario` | Nome IANA do fuso da unidade (padrão `America/Sao_Paulo`). Só aceita nomes de região válidos: `America/Manaus` sim, `UTC-3` não (deslocamento fixo ignora horário de verão). |
 | `horarios_ocupados(dia, unidade)` | O "dia" é o dia **na unidade**: uma consulta às 22:30 do dia 10 em Dois Vizinhos (01:30 UTC do dia 11) conta no dia 10. |
+| `buscar_disponibilidade_agenda(unidade, profissional, dia)` | Usa o mesmo "dia na unidade" e remove da grade apenas consultas ativas do profissional escolhido. |
 | Papéis `anon` e `authenticated` | Fuso da sessão `America/Sao_Paulo`: respostas vêm com `-03:00`, e um valor enviado **sem** fuso é lido como horário de Brasília (veja "Compatibilidade"). |
 
 ## Regras para quem mexe no código

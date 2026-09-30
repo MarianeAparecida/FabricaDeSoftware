@@ -57,11 +57,11 @@ export default function Agendamento() {
         loading: loadingHorarios,
         error: erroHorarios,
     } = useQuery<string[]>(async () => {
-        if (!day || !unidadeSelecionada || !profissionalSelecionado) {
+        if (!day) {
             return { data: [], error: null };
         }
 
-        return buscarHorariosDisponiveis(day, unidadeSelecionada.id, profissionalSelecionado.id);
+        return buscarHorariosDisponiveis(day, unidadeSelecionada?.id, profissionalSelecionado?.id);
     }, [day, unidadeSelecionada?.id, profissionalSelecionado?.id]);
 
     const handleAgendarConsulta = async () => {

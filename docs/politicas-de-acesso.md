@@ -71,7 +71,7 @@ Agendamentos de cada paciente.
 - **Colunas que o app pode enviar ao agendar:** `paciente_id`, `profissional_id`, `unidade_saude_id`, `status`, `data_hora`, `especialidade`.
 - **Coluna que o app pode alterar:** só `status`, e só para `cancelada`. Remarcar, confirmar ou marcar como realizada/faltou é papel da unidade de saúde (servidor), não do paciente.
 - **Consulta cancelada não volta:** a política de UPDATE nem enxerga linhas já canceladas.
-- **Horário duplicado:** o índice único `consulta_horario_unico_idx` impede dois agendamentos ativos na mesma unidade e horário, independente de quem agendou.
+- **Horário duplicado:** o índice único `consulta_profissional_horario_unico_idx` impede duas consultas que ocupam agenda (`agendada`/`confirmada`) para o mesmo profissional, unidade e horário. O mesmo horário pode existir na mesma unidade para profissionais diferentes.
 - **Anônimo:** `permission denied`.
 
 ### Catálogos: `unidade_saude`, `profissional`, `medicamento`, `disponibilidade`
@@ -95,7 +95,8 @@ Rodam com permissão de administrador, então cada uma foi revisada para devolve
 | Função | Quem executa | O que devolve | Por que existe |
 |---|---|---|---|
 | `meu_paciente_id()` | authenticated | O `id` do paciente logado | Usada nas políticas de `consulta` sem depender do RLS de `paciente`. |
-| `horarios_ocupados(data, unidade)` | authenticated | Só os horários (`timestamptz`) já ocupados, com o "dia" contado no fuso da unidade | A tela de agendamento precisa saber que o horário está ocupado mesmo quando a consulta é de outro paciente, e o RLS esconde essas linhas. Não devolve paciente, especialidade nem status. |
+| `buscar_disponibilidade_agenda(unidade, profissional, data)` | anon / authenticated | Horários disponíveis da grade do profissional na unidade/data | Unidade, profissional e data são obrigatórios. Horários ocupados filtram apenas consultas `agendada`/`confirmada` do profissional escolhido, sem esconder opções livres de outros profissionais da mesma unidade. |
+| `horarios_ocupados(data, unidade)` | authenticated | Só os horários (`timestamptz`) já ocupados, com o "dia" contado no fuso da unidade | Função legada/de apoio: não devolve paciente, especialidade nem status. |
 
 | `portal_meu_perfil()`, `portal_agenda(dia)`, `portal_atualizar_status(consulta, status)` | authenticated, mas só **servidor ativo** passa | Dados do servidor; agenda da unidade dele (nome, CPF mascarado e telefone do paciente); mudança de status de consulta da unidade dele | Portal da unidade (US-06). Paciente e servidor inativo recebem `42501`. |
 | `portal_equipe()` | authenticated, mas só **gestor ativo** passa | Servidores da unidade do gestor | Portal da unidade, perfil gestor. |
@@ -148,4 +149,4 @@ Usam a `service_role` e **ignoram o RLS**, então a proteção depende do códig
 
 - **O cadastro revela se um CPF já existe** ("Este CPF já está cadastrado"). É inerente a um formulário de cadastro; mitigar exigiria confirmação por e-mail antes de responder.
 - **Tentativas de senha:** o limite de tentativas do Supabase Auth é por IP, e todas as tentativas chegam pelo IP da Edge Function `login-paciente`. Em produção, vale limitar tentativas por CPF na própria função.
-- **Ocupação de horários** é visível para qualquer paciente logado (só o horário, sem identificar ninguém).
+- **Ocupação de horários** é usada para calcular disponibilidade sem identificar pacientes. Na agenda por profissional, um horário ocupado por um profissional não bloqueia outro profissional da mesma unidade.

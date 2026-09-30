@@ -165,7 +165,23 @@ export async function cancelarConsulta(consultaId: number) {
     return executarQuery<Consulta>(query, 10000, 'Falha ao tentar cancelar a consulta');
 }
 
-export async function buscarHorariosDisponiveis(data: string, unidadeId: number, profissionalId: number) {
+export async function buscarHorariosDisponiveis(
+    data?: string,
+    unidadeId?: number | null,
+    profissionalId?: number | null
+) {
+    if (!data) {
+        return { data: null, error: { message: 'Parametro obrigatorio: data.' } };
+    }
+
+    if (!unidadeId) {
+        return { data: null, error: { message: 'Parametro obrigatorio: unidade.' } };
+    }
+
+    if (!profissionalId) {
+        return { data: null, error: { message: 'Parametro obrigatorio: profissional.' } };
+    }
+
     const query = supabase.rpc('buscar_disponibilidade_agenda', {
         p_unidade_id: unidadeId,
         p_profissional_id: profissionalId,
@@ -190,9 +206,13 @@ export async function buscarHorariosDisponiveis(data: string, unidadeId: number,
 }
 
 export async function buscarHorariosOcupados(data: string, unidadeId?: number, fuso: string = FUSO_PADRAO): Promise<string[]> {
+    if (!unidadeId) {
+        throw new Error('Parametro obrigatorio: unidade.');
+    }
+
     const query = supabase.rpc('horarios_ocupados', {
         p_data: data,
-        p_unidade_id: unidadeId || 0,
+        p_unidade_id: unidadeId,
     });
 
     const resultado = await executarQuery<string[]>(query, 10000, 'Erro ao buscar horários.');
