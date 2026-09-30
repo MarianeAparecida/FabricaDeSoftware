@@ -11,6 +11,7 @@ import {
     UnidadeSaude,
     Profissional,
 } from "../../../src/services/consultas";
+import { FUSO_PADRAO, hojeNoFuso } from "../../../src/utils/fusoHorario";
 import { useQuery } from "@/src/services/useQuery";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../../src/contexts/ThemeContext";
@@ -49,6 +50,8 @@ export default function Agendamento() {
         setSelectedTime(null);
     }, [params.unidadeSelecionada, params.profissionalSelecionado]);
 
+    const fusoUnidade = unidadeSelecionada?.fuso_horario || FUSO_PADRAO;
+
     const {
         data: horariosDisponiveis,
         loading: loadingHorarios,
@@ -78,7 +81,7 @@ export default function Agendamento() {
                 return;
             }
 
-            const dataHora = combinarDataHora(day, selectedTime);
+            const dataHora = combinarDataHora(day, selectedTime, fusoUnidade);
 
             const { error } = await criarConsulta({
                 paciente_id: paciente.id,
@@ -112,7 +115,7 @@ export default function Agendamento() {
         }
     };
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = hojeNoFuso(fusoUnidade);
     const formatarData = (dateString: string) => {
         if (!dateString || !dateString.includes('-')) return "-";
         const [y, m, d] = dateString.split("-");

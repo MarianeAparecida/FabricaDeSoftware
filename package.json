@@ -6,7 +6,12 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status",
+    "db:test": "supabase test db"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -46,6 +51,7 @@
   "devDependencies": {
     "@types/react": "~19.1.0",
     "react-test-renderer": "19.1.0",
+    "supabase": "^2.118.0",
     "typescript": "~5.9.2"
   },
   "private": true

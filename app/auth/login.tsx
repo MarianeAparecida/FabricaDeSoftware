@@ -127,6 +127,13 @@ export default function Login() {
               Primeiro acesso? Cadastre-se aqui
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push("/portal/login")}
+          >
+            <Text style={styles.links}>Sou servidor da unidade</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView >
     </View>

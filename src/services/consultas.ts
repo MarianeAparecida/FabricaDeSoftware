@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { FUSO_PADRAO, noFuso, paraIsoComFuso } from '../utils/fusoHorario';
 
 const timeout = async <T>(promise: PromiseLike<T>, controller: AbortController, ms: number = 30000): Promise<T> => {
     const timeoutId = setTimeout(() => controller.abort(), ms);
@@ -60,9 +61,10 @@ export type Consulta = {
     profissional_id?: number;
     unidade_saude_id?: number;
     status?: string;
+    /** Instante com fuso (timestamptz). Exibir com noFuso(data_hora, fusoDaConsulta(c)). */
     data_hora: string;
     especialidade?: string;
-    unidade_saude?: string | { id: number; nome: string; endereco?: string };
+    unidade_saude?: string | { id: number; nome: string; endereco?: string; fuso_horario?: string };
 };
 
 export type UnidadeSaude = {
@@ -70,6 +72,8 @@ export type UnidadeSaude = {
     nome: string;
     endereco?: string;
     telefone?: string;
+    /** Fuso IANA da unidade, ex.: "America/Sao_Paulo". */
+    fuso_horario?: string;
 };
 
 export type Profissional = {
@@ -78,8 +82,15 @@ export type Profissional = {
     cpf?: string;
     registro_conselho?: string;
     especialidade?: string;
-    unidade_id: number;
+    unidade_saude_id?: number;
+    unidade_id?: number;
 };
+
+/** Fuso em que o horário de uma consulta deve ser exibido: o da unidade. */
+export function fusoDaConsulta(consulta: Pick<Consulta, 'unidade_saude'>): string {
+    const unidade = consulta.unidade_saude;
+    return (typeof unidade === 'object' && unidade?.fuso_horario) || FUSO_PADRAO;
+}
 
 export async function buscarPacientePorAuthId(authUserId: string) {
     const query = supabase
@@ -110,7 +121,7 @@ export async function buscarProfissionaisPorUnidade(unidadeId: number) {
     const query = supabase
         .from('profissional')
         .select('*')
-        .eq('unidade_id', unidadeId)
+        .eq('unidade_saude_id', unidadeId)
         .order('nome', { ascending: true });
 
     return executarQuery<Profissional[]>(query, 10000, 'Erro ao carregar a lista de profissionais');
@@ -136,7 +147,7 @@ export async function criarConsulta(consulta: Omit<Consulta, 'id'>) {
 export async function buscarConsultasPaciente(pacienteId: number) {
     const query = supabase
         .from('consulta')
-        .select('*, unidade_saude:unidade_saude_id (id, nome, endereco)')
+        .select('*, unidade_saude:unidade_saude_id (id, nome, endereco, fuso_horario)')
         .eq('paciente_id', pacienteId)
         .order('data_hora', { ascending: true });
 
@@ -178,6 +189,21 @@ export async function buscarHorariosDisponiveis(data: string, unidadeId: number,
     return { data: horarios, error: null };
 }
 
-export function combinarDataHora(data: string, horario: string): string {
-    return `${data}T${horario}:00`;
+export async function buscarHorariosOcupados(data: string, unidadeId?: number, fuso: string = FUSO_PADRAO): Promise<string[]> {
+    const query = supabase.rpc('horarios_ocupados', {
+        p_data: data,
+        p_unidade_id: unidadeId || 0,
+    });
+
+    const resultado = await executarQuery<string[]>(query, 10000, 'Erro ao buscar horários.');
+
+    if (resultado.error || !resultado.data) {
+        return [];
+    }
+
+    return resultado.data.map(dataHoraIso => noFuso(dataHoraIso, fuso).hora);
+}
+
+export function combinarDataHora(data: string, horario: string, fuso: string = FUSO_PADRAO): string {
+    return paraIsoComFuso(data, horario, fuso);
 }

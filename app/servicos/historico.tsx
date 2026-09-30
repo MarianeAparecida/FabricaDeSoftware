@@ -5,7 +5,8 @@ import { Top_Bar } from '../../src/components/topBar';
 import { Historico_Styles} from '../../src/styles/historicoStyles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AuthContext } from '../../src/contexts/AuthContext';
-import { buscarPacientePorAuthId, buscarConsultasPaciente } from '../../src/services/consultas';
+import { buscarPacientePorAuthId, buscarConsultasPaciente, fusoDaConsulta } from '../../src/services/consultas';
+import { noFuso } from '../../src/utils/fusoHorario';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/contexts/ThemeContext';
@@ -46,8 +47,8 @@ export default function Historico() {
         const formatadas = consultas
             .filter(c => new Date(c.data_hora) < agora || c.status === 'cancelada' || c.status === 'faltou')
             .map(c => {
-                const [dataParte] = c.data_hora.split('T');
-                const hora = new Date(c.data_hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                // Data e hora no fuso da unidade: iguais em qualquer aparelho
+                const { data: dataParte, hora } = noFuso(c.data_hora, fusoDaConsulta(c));
                 return {
                     id: c.id!,
                     unidade: typeof c.unidade_saude === 'object' ? c.unidade_saude.nome : 'UBS',

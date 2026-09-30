@@ -46,7 +46,7 @@ begin
         select 1
         from public.profissional p
         where p.id = new.profissional_id
-          and p.unidade_id = new.unidade_saude_id
+          and p.unidade_saude_id = new.unidade_saude_id
     ) then
         raise exception 'O profissional informado nao pertence a unidade informada.';
     end if;
@@ -86,12 +86,15 @@ as $$
         select p.id
         from public.profissional p
         where p.id = p_profissional_id
-          and p.unidade_id = p_unidade_id
+          and p.unidade_saude_id = p_unidade_id
     ),
     slots as (
-        select slot.data_hora
+        select
+            slot.data_hora as data_hora_local,
+            slot.data_hora at time zone u.fuso_horario as data_hora
         from public.grade_atendimento g
         join profissional_valido pv on pv.id = g.profissional_id
+        join public.unidade_saude u on u.id = g.unidade_saude_id
         cross join lateral generate_series(
             p_data + g.hora_inicio,
             (p_data + g.hora_fim) - make_interval(mins => g.intervalo_minutos),
@@ -105,15 +108,16 @@ as $$
     ocupados as (
         select c.data_hora
         from public.consulta c
+        join public.unidade_saude u on u.id = c.unidade_saude_id
         where c.unidade_saude_id = p_unidade_id
           and c.profissional_id = p_profissional_id
-          and c.data_hora >= p_data::timestamp
-          and c.data_hora < (p_data::timestamp + interval '1 day')
+          and c.data_hora >= (p_data::timestamp at time zone u.fuso_horario)
+          and c.data_hora < ((p_data + 1)::timestamp at time zone u.fuso_horario)
           and lower(coalesce(c.status, '')) <> 'cancelada'
     )
-    select distinct to_char(s.data_hora, 'HH24:MI') as horario
+    select distinct to_char(s.data_hora_local, 'HH24:MI') as horario
     from slots s
-    where s.data_hora > timezone('America/Sao_Paulo', now())
+    where s.data_hora > now()
       and not exists (
           select 1
           from ocupados o
