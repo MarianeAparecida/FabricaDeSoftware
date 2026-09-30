@@ -11,7 +11,9 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:status": "supabase status",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "check:credenciais": "node scripts/verificar-credenciais.js",
+    "eas-build-pre-install": "node scripts/verificar-credenciais.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

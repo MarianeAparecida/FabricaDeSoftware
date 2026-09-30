@@ -28,9 +28,11 @@ Protótipos Mobile: [(Acesso no Figma)](https://www.figma.com/design/0THctJLxAMy
 O banco, a autenticação e as Edge Functions ficam na pasta `supabase/` e rodam localmente via Docker.<br>
 **Pré-requisito:** Docker Desktop aberto.<br>
 Execute o comando 'npm install'<br>
+Copie o arquivo 'supabase/functions/.env.example' para 'supabase/functions/.env' (os valores padrão já servem para rodar localmente)<br>
 Execute o comando 'npm run db:start'. Na primeira vez ele baixa as imagens Docker (alguns GB) e cria o banco com dados de exemplo<br>
-Copie o arquivo '.env.example' para '.env.local' e preencha 'EXPO_PUBLIC_SUPABASE_ANON_KEY' com o 'ANON_KEY' exibido por 'npm run db:status'<br>
+Copie o arquivo '.env.example' para '.env.local' e preencha 'EXPO_PUBLIC_SUPABASE_ANON_KEY' com o 'ANON_KEY' exibido por 'npm run db:status -- -o env'<br>
 No emulador Android, use 'EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321'; no celular físico, use o IP do seu PC na rede<br>
+**Variáveis de ambiente e segredos** (o que vai em cada arquivo, build no EAS e 'npm run check:credenciais'): [docs/variaveis-de-ambiente.md](docs/variaveis-de-ambiente.md). Nunca escreva URL ou chave no código<br>
 
 **Usuário de teste** (já verificado): CPF `123.456.789-00`, senha `ABC123!@#ab`. O botão "Entrar com o gov.br" da tela de login preenche esses dados.<br>
 **E-mails** (recuperação de senha) não saem para a internet: abra http://127.0.0.1:54324 para vê-los.<br>
@@ -56,6 +58,9 @@ Aperte 'a' para abrir no emulador android ou 'w' par abrir na web<br>
 **Você pode rodar sem build após mudanças não relacionadas ao app.json ou a bibliotecas** <br>
 Execute o comando 'npx expo start'<br>
 Aperte 'a' para abrir no emulador android ou 'w' par abrir na web<br>
+
+# Build na nuvem (EAS)
+A build no EAS **não** usa o '.env.local': cada perfil do 'eas.json' lê a URL e a chave do Supabase de um ambiente do EAS ('development', 'preview' ou 'production'), cadastradas com 'eas env:set'. Se faltar alguma, a build para logo no início dizendo qual. Passo a passo em [docs/variaveis-de-ambiente.md](docs/variaveis-de-ambiente.md#build-no-eas)<br>
 
 # Rodando uma build específica (android/web)
 Acesse o a build específica (pelo dashboard do expo.dev ou por um link)<br>

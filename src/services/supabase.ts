@@ -1,11 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Definidos em .env.local (veja .env.example). Rode `npx supabase status` para obter os valores locais.
+// Local: definidos em .env.local (veja .env.example). Build no EAS: vêm do ambiente do EAS
+// escolhido pelo perfil em eas.json. Detalhes em docs/variaveis-de-ambiente.md.
 export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  throw new Error("Defina EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY no arquivo .env.local");
+  throw new Error(
+    "Defina EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY no arquivo .env.local (ou no ambiente do EAS, para builds)"
+  );
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {

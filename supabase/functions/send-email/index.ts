@@ -1,9 +1,10 @@
 // Envio de e-mail por CPF. Hoje o app usa só { cpf, action: "reset" } (recuperação de senha).
 // Sempre responde sucesso para não revelar quais CPFs estão cadastrados.
-// Em ambiente local, os e-mails chegam no Mailpit: http://127.0.0.1:54324
-import { emailPorCpf, handle, json, limparCpf, publicClient } from "../_shared/utils.ts";
+// Em ambiente local, os e-mails chegam no Mailpit (endereço no README).
+import { emailPorCpf, env, handle, json, limparCpf, publicClient } from "../_shared/utils.ts";
 
-const REDIRECT_RESET = Deno.env.get("RESET_REDIRECT_URL") ?? "http://localhost:8081/recuperarSenha/alterar";
+// Tela de redefinir senha para onde o link do e-mail leva (app/recuperarSenha/alterar.tsx).
+const REDIRECT_RESET = env("RESET_REDIRECT_URL");
 
 Deno.serve(handle(async (body) => {
   const cpf = limparCpf(body.cpf);
