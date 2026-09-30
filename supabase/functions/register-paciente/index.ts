@@ -6,6 +6,15 @@ import { admin, handle, json, limparCpf } from "../_shared/utils.ts";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SENHA_FORTE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
+async function existe(coluna: "cpf" | "email", valor: string) {
+  const { count, error } = await admin
+    .from("paciente")
+    .select("id", { count: "exact", head: true })
+    .eq(coluna, valor);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
 Deno.serve(handle(async (body) => {
   const nome = typeof body.nome === "string" ? body.nome.trim() : "";
   const cpf = limparCpf(body.cpf);
@@ -17,16 +26,11 @@ Deno.serve(handle(async (body) => {
   if (!EMAIL_REGEX.test(email)) return json({ error: "E-mail inválido." });
   if (!SENHA_FORTE.test(senha)) return json({ error: "A senha não atende aos requisitos mínimos." });
 
-  const { data: existente, error: erroBusca } = await admin
-    .from("paciente")
-    .select("cpf, email")
-    .or(`cpf.eq.${cpf},email.eq.${email}`)
-    .limit(1)
-    .maybeSingle();
-  if (erroBusca) throw erroBusca;
-  if (existente) {
-    return json({ error: existente.cpf === cpf ? "Este CPF já está cadastrado." : "Este e-mail já está cadastrado." });
-  }
+  // Duas buscas com .eq() em vez de .or(`...${email}`): o e-mail vem do usuário, e
+  // interpolado no filtro permitiria injetar condições (ex.: "x@y.z,cpf.like.1*")
+  // e descobrir CPFs de outros pacientes, já que esta função ignora o RLS.
+  if (await existe("cpf", cpf)) return json({ error: "Este CPF já está cadastrado." });
+  if (await existe("email", email)) return json({ error: "Este e-mail já está cadastrado." });
 
   const { data: criado, error: erroAuth } = await admin.auth.admin.createUser({
     email,
