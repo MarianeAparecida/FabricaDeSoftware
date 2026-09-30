@@ -5,7 +5,8 @@ import { Consultas_Styles, Consultas_Styles as styles } from '../../src/styles/c
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Modal from "react-native-modal";
 import { AuthContext } from '../../src/contexts/AuthContext';
-import { buscarPacientePorAuthId, buscarConsultasPaciente, cancelarConsulta } from '../../src/services/consultas';
+import { buscarPacientePorAuthId, buscarConsultasPaciente, cancelarConsulta, fusoDaConsulta } from '../../src/services/consultas';
+import { noFuso } from '../../src/utils/fusoHorario';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../src/contexts/ThemeContext';
 import { useQuery } from '@/src/services/useQuery';
@@ -49,9 +50,8 @@ export default function Consultas() {
                     return dataConsulta >= agora && c.status !== 'cancelada';
                 })
                 .map(c => {
-                    const [dataParte] = c.data_hora.split('T');
-                    const dataHora = new Date(c.data_hora);
-                    const hora = dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    // Data e hora no fuso da unidade: iguais em qualquer aparelho
+                    const { data: dataParte, hora } = noFuso(c.data_hora, fusoDaConsulta(c));
 
                     let nomeUnidade = 'UBS';
                     if (c.unidade_saude && typeof c.unidade_saude === 'object') {

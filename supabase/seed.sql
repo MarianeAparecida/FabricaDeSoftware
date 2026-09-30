@@ -8,7 +8,9 @@ insert into public.unidade_saude (id, nome, endereco, telefone) values
     (1, 'UBS Central',          'Rua XV de Novembro, 1200 - Centro',        '(41) 3333-1000'),
     (2, 'UBS Vila Nova',        'Av. das Araucárias, 455 - Vila Nova',      '(41) 3333-2000'),
     (3, 'UBS Jardim das Flores','Rua das Hortênsias, 78 - Jardim das Flores','(41) 3333-3000'),
-    (4, 'Policlínica Municipal','Av. Brasil, 3100 - Boa Vista',             '(41) 3333-4000');
+    (4, 'Policlínica Municipal','Av. Brasil, 3100 - Boa Vista',             '(41) 3333-4000'),
+    (5, 'UBS Centro - Dois Vizinhos', 'Rua Principal, 100 - Centro, Dois Vizinhos - PR', '(46) 3536-1000');
+-- fuso_horario de todas: America/Sao_Paulo (padrão da coluna).
 
 -- ---------------------------------------------------------------------------
 -- Profissionais (mesmas especialidades da tela de seleção do app)
@@ -96,14 +98,19 @@ begin
 end $$;
 
 -- Consultas do usuário de teste: próximas (tela inicial / Minhas consultas) e passadas (Histórico).
+-- Os horários são de parede na unidade e viram instante com o fuso dela ("at time zone").
 insert into public.consulta (paciente_id, unidade_saude_id, status, data_hora, especialidade)
-select p.id, c.unidade, c.status, c.data_hora, c.especialidade
+select p.id, c.unidade, c.status, c.hora_local at time zone u.fuso_horario, c.especialidade
 from public.paciente p
-cross join (values
-    (1, 'agendada',  (current_date + 3)  + time '09:00', 'Clínico Geral'),
-    (2, 'agendada',  (current_date + 10) + time '14:30', 'Psicólogo'),
-    (1, 'realizada', (current_date - 20) + time '10:00', 'Dentista'),
-    (4, 'faltou',    (current_date - 45) + time '08:30', 'Ortopedista'),
-    (3, 'cancelada', (current_date - 7)  + time '15:00', 'Nutricionista')
-) as c(unidade, status, data_hora, especialidade)
+cross join (
+    select (now() at time zone 'America/Sao_Paulo')::date as hoje
+) d
+cross join lateral (values
+    (1, 'agendada',  (d.hoje + 3)  + time '09:00', 'Clínico Geral'),
+    (2, 'agendada',  (d.hoje + 10) + time '14:30', 'Psicólogo'),
+    (1, 'realizada', (d.hoje - 20) + time '10:00', 'Dentista'),
+    (4, 'faltou',    (d.hoje - 45) + time '08:30', 'Ortopedista'),
+    (3, 'cancelada', (d.hoje - 7)  + time '15:00', 'Nutricionista')
+) as c(unidade, status, hora_local, especialidade)
+join public.unidade_saude u on u.id = c.unidade
 where p.cpf = '12345678900';

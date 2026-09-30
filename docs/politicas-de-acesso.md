@@ -88,7 +88,7 @@ Rodam com permissão de administrador, então cada uma foi revisada para devolve
 | Função | Quem executa | O que devolve | Por que existe |
 |---|---|---|---|
 | `meu_paciente_id()` | authenticated | O `id` do paciente logado | Usada nas políticas de `consulta` sem depender do RLS de `paciente`. |
-| `horarios_ocupados(data, unidade)` | authenticated | Só os horários (`timestamp`) já ocupados | A tela de agendamento precisa saber que o horário está ocupado mesmo quando a consulta é de outro paciente, e o RLS esconde essas linhas. Não devolve paciente, especialidade nem status. |
+| `horarios_ocupados(data, unidade)` | authenticated | Só os horários (`timestamptz`) já ocupados, com o "dia" contado no fuso da unidade | A tela de agendamento precisa saber que o horário está ocupado mesmo quando a consulta é de outro paciente, e o RLS esconde essas linhas. Não devolve paciente, especialidade nem status. |
 
 As duas têm `search_path` fixo (vazio) e `EXECUTE` negado para `anon`.
 

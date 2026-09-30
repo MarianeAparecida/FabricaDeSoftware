@@ -4,6 +4,7 @@ import { Agendamento_Styles } from "../../../src/styles/agendamentoStyles"
 import { Top_Bar } from "../../../src/components/topBar";
 import { AuthContext } from "../../../src/contexts/AuthContext";
 import { criarConsulta, buscarPacientePorAuthId, combinarDataHora, buscarHorariosOcupados, UnidadeSaude } from "../../../src/services/consultas";
+import { FUSO_PADRAO, hojeNoFuso, noFuso } from "../../../src/utils/fusoHorario";
 import { useQuery } from "@/src/services/useQuery";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../../src/contexts/ThemeContext";
@@ -42,17 +43,20 @@ export default function Agendamento() {
         }
     }, [params.unidadeSelecionada, params.tipo]);
 
+    // Data e horários são sempre os da unidade, não os do aparelho do paciente.
+    const fusoUnidade = unidadeSelecionada?.fuso_horario || FUSO_PADRAO;
 
     const { data: horariosDisponiveis, loading: loadingHorarios } = useQuery(async () => {
         if (!day || !unidadeSelecionada) return { data: [], error: null };
 
-        const ocupados = await buscarHorariosOcupados(day, unidadeSelecionada.id);
+        const ocupados = await buscarHorariosOcupados(day, unidadeSelecionada.id, fusoUnidade);
         let disponiveis = todosHorarios.filter(h => !ocupados.includes(h));
 
-        // Filtro de horário retroativo (se for hoje)
-        const now = new Date();
-        if (day === now.toISOString().split('T')[0]) {
-            const currentMin = now.getHours() * 60 + now.getMinutes();
+        // Filtro de horário retroativo (se for hoje na unidade)
+        const agora = noFuso(new Date(), fusoUnidade);
+        if (day === agora.data) {
+            const [horaAtual, minutoAtual] = agora.hora.split(":").map(Number);
+            const currentMin = horaAtual * 60 + minutoAtual;
             disponiveis = disponiveis.filter(h => {
                 const [hr, min] = h.split(":").map(Number);
                 return (hr * 60 + min) > currentMin;
@@ -60,7 +64,7 @@ export default function Agendamento() {
         }
 
         return { data: disponiveis, error: null };
-    }, [day, unidadeSelecionada?.id]);
+    }, [day, unidadeSelecionada?.id, fusoUnidade]);
 
     const handleAgendarConsulta = async () => {
         if (!user) return Alert.alert("Erro", "Faça login para continuar.");
@@ -79,7 +83,7 @@ export default function Agendamento() {
                 return;
             }
 
-            const dataHora = combinarDataHora(day, selectedTime);
+            const dataHora = combinarDataHora(day, selectedTime, fusoUnidade);
 
             const { error } = await criarConsulta({
                 paciente_id: paciente.id,
@@ -112,7 +116,7 @@ export default function Agendamento() {
         }
     };
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = hojeNoFuso(fusoUnidade);
     const formatarData = (dateString: string) => {
         if (!dateString || !dateString.includes('-')) return "-";
         const [y, m, d] = dateString.split("-");

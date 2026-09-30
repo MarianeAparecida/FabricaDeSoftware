@@ -7,7 +7,8 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useRouter, useFocusEffect } from "expo-router";
 import { AuthContext } from "../../src/contexts/AuthContext";
-import { buscarPacientePorAuthId, buscarConsultasPaciente } from "../../src/services/consultas";
+import { buscarPacientePorAuthId, buscarConsultasPaciente, fusoDaConsulta } from "../../src/services/consultas";
+import { noFuso } from "../../src/utils/fusoHorario";
 import { useTheme } from "../../src/contexts/ThemeContext";
 import { useQuery } from "../../src/services/useQuery"; // Certifique-se de que o caminho está correto
 
@@ -67,15 +68,10 @@ export default function Home() {
                     )[0];
 
                 if (proximaConsulta) {
-                    const [dataParte] = proximaConsulta.data_hora.split("T");
+                    // Data e hora no fuso da unidade: iguais em qualquer aparelho
+                    const { data: dataParte, hora } = noFuso(proximaConsulta.data_hora, fusoDaConsulta(proximaConsulta));
                     const [ano, mes, dia] = dataParte.split("-");
                     const dataFormatada = `${dia}/${mes}/${ano}`;
-
-                    const dataHora = new Date(proximaConsulta.data_hora);
-                    const hora = dataHora.toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    });
 
                     let nomeUnidade = "UBS";
                     if (proximaConsulta.unidade_saude && typeof proximaConsulta.unidade_saude === "object") {
