@@ -73,6 +73,12 @@ export function noFuso(instante: string | Date, fuso: string = FUSO_PADRAO) {
   };
 }
 
+/** Soma dias a uma data "AAAA-MM-DD" (aritmética de calendário, independe de fuso). */
+export function somarDias(data: string, dias: number) {
+  const [ano, mes, dia] = data.split("-").map(Number);
+  return new Date(Date.UTC(ano, mes - 1, dia + dias)).toISOString().slice(0, 10);
+}
+
 /** Data de hoje ("AAAA-MM-DD") no fuso informado. */
 export function hojeNoFuso(fuso: string = FUSO_PADRAO) {
   return noFuso(new Date(), fuso).data;

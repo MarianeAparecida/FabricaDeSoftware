@@ -58,3 +58,15 @@ export async function clearSession() {
     console.error('[Auth] Failed to clear session:', err);
   }
 }
+
+// Esquece a sessão de paciente guardada neste aparelho, sem derrubá-la nos outros
+// (signOut local). Usado quando um servidor entra no portal no mesmo aparelho.
+export async function forgetLocalSession() {
+  try {
+    await AsyncStorage.removeItem(SESSION_KEY);
+    await AsyncStorage.removeItem(USERNAME_KEY);
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (err) {
+    console.error('[Auth] Failed to forget local session:', err);
+  }
+}

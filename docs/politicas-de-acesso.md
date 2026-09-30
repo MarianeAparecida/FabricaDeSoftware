@@ -35,6 +35,9 @@ Se uma camada falhar (ex.: alguém apaga uma política por engano), a outra cont
 | `profissional` | anon / authenticated | ✅ | ❌ | ❌ | ❌ |
 | `medicamento` | anon / authenticated | ✅ | ❌ | ❌ | ❌ |
 | `disponibilidade` | anon / authenticated | ✅ | ❌ | ❌ | ❌ |
+| `servidor` | anon / authenticated | ❌ | ❌ | ❌ | ❌ |
+
+Servidores das unidades (US-06) não leem nenhuma dessas tabelas direto: o portal usa só as funções `portal_*` (abaixo), que devolvem dados da unidade do servidor.
 
 Nenhum papel do app tem `TRUNCATE`, `TRIGGER` ou `REFERENCES`. Escritas nos catálogos só pela `service_role` (painel/seed).
 
@@ -81,6 +84,10 @@ Informação pública (as telas de unidades e de medicamentos funcionam antes do
 
 Não há privilégio de escrita para o app; cadastros e estoque são mantidos pela `service_role`.
 
+### `servidor`
+
+Servidores das unidades, com unidade, perfil (`atendente`/`gestor`) e vínculo (`ativo`). RLS ativo **sem políticas** e sem privilégio para `anon`/`authenticated`: ninguém do app lê a tabela. Cadastro e desativação pela `service_role`. Regras do portal em [portal-da-unidade.md](portal-da-unidade.md).
+
 ## Funções do banco (`SECURITY DEFINER`)
 
 Rodam com permissão de administrador, então cada uma foi revisada para devolver só o mínimo:
@@ -90,7 +97,12 @@ Rodam com permissão de administrador, então cada uma foi revisada para devolve
 | `meu_paciente_id()` | authenticated | O `id` do paciente logado | Usada nas políticas de `consulta` sem depender do RLS de `paciente`. |
 | `horarios_ocupados(data, unidade)` | authenticated | Só os horários (`timestamptz`) já ocupados, com o "dia" contado no fuso da unidade | A tela de agendamento precisa saber que o horário está ocupado mesmo quando a consulta é de outro paciente, e o RLS esconde essas linhas. Não devolve paciente, especialidade nem status. |
 
-As duas têm `search_path` fixo (vazio) e `EXECUTE` negado para `anon`.
+| `portal_meu_perfil()`, `portal_agenda(dia)`, `portal_atualizar_status(consulta, status)` | authenticated, mas só **servidor ativo** passa | Dados do servidor; agenda da unidade dele (nome, CPF mascarado e telefone do paciente); mudança de status de consulta da unidade dele | Portal da unidade (US-06). Paciente e servidor inativo recebem `42501`. |
+| `portal_equipe()` | authenticated, mas só **gestor ativo** passa | Servidores da unidade do gestor | Portal da unidade, perfil gestor. |
+| `exigir_servidor(perfis)` | ninguém do app (uso interno) | O servidor ativo logado, ou erro `42501` | Checagem central usada por todas as `portal_*`. |
+| `custom_access_token_hook(evento)` | só `supabase_auth_admin` | O token, ou erro 403 | Hook do Supabase Auth: recusa login e renovação de token para servidor sem vínculo ativo. |
+
+Todas têm `search_path` fixo (vazio) e `EXECUTE` negado para `anon`.
 
 ## Edge Functions (servidor)
 

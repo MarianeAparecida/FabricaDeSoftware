@@ -35,7 +35,8 @@ No emulador Android, use 'EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321'; no ce
 **Usuário de teste** (já verificado): CPF `123.456.789-00`, senha `ABC123!@#ab`. O botão "Entrar com o gov.br" da tela de login preenche esses dados.<br>
 **E-mails** (recuperação de senha) não saem para a internet: abra http://127.0.0.1:54324 para vê-los.<br>
 **Recriar o banco do zero** (aplica `supabase/migrations` e `supabase/seed.sql` de novo): 'npm run db:reset'<br>
-**Testar o banco** (políticas de acesso e fuso horário): 'npm run db:test'. Veja [docs/politicas-de-acesso.md](docs/politicas-de-acesso.md) e [docs/data-e-hora.md](docs/data-e-hora.md)<br>
+**Portal da unidade** (servidores das UBS): http://localhost:8081/portal. Contas de teste e perfis em [docs/portal-da-unidade.md](docs/portal-da-unidade.md) (ex.: `recepcao.dv@agendasus.dev` / `Servidor@123`)<br>
+**Testar o banco** (políticas de acesso, fuso horário e portal): 'npm run db:test'. Veja [docs/politicas-de-acesso.md](docs/politicas-de-acesso.md) e [docs/data-e-hora.md](docs/data-e-hora.md)<br>
 **Desligar:** 'npm run db:stop'<br>
 
 # Realizando a build do projeto localmente e rodando (android/web)

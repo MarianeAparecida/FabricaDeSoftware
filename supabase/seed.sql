@@ -53,14 +53,12 @@ select setval(pg_get_serial_sequence('public.unidade_saude', 'id'), (select max(
 select setval(pg_get_serial_sequence('public.medicamento',   'id'), (select max(id) from public.medicamento));
 
 -- ---------------------------------------------------------------------------
--- Usuário de teste (e-mail já confirmado)
---   CPF:   123.456.789-00
---   Senha: ABC123!@#ab
+-- Contas de login (e-mail já confirmado). Função temporária, some ao fim do seed.
 -- ---------------------------------------------------------------------------
-do $$
-declare
-    v_user_id uuid := '11111111-1111-1111-1111-111111111111';
-    v_email   text := 'teste@agendasus.dev';
+create function pg_temp.criar_usuario(p_id uuid, p_email text, p_senha text, p_meta jsonb)
+returns uuid
+language plpgsql
+as $$
 begin
     insert into auth.users (
         instance_id, id, aud, role, email, encrypted_password,
@@ -69,11 +67,11 @@ begin
         confirmation_token, recovery_token, email_change_token_new, email_change,
         email_change_token_current, phone_change, phone_change_token, reauthentication_token
     ) values (
-        '00000000-0000-0000-0000-000000000000', v_user_id, 'authenticated', 'authenticated',
-        v_email, extensions.crypt('ABC123!@#ab', extensions.gen_salt('bf')),
+        '00000000-0000-0000-0000-000000000000', p_id, 'authenticated', 'authenticated',
+        p_email, extensions.crypt(p_senha, extensions.gen_salt('bf')),
         now(),
         '{"provider": "email", "providers": ["email"]}',
-        jsonb_build_object('display_name', 'Maria Teste', 'cpf', '12345678900', 'email_verified', true),
+        p_meta || jsonb_build_object('email_verified', true),
         now(), now(),
         '', '', '', '',
         '', '', '', ''
@@ -83,19 +81,47 @@ begin
         id, user_id, provider_id, provider, identity_data,
         last_sign_in_at, created_at, updated_at
     ) values (
-        gen_random_uuid(), v_user_id, v_user_id::text, 'email',
-        jsonb_build_object('sub', v_user_id::text, 'email', v_email, 'email_verified', true),
+        gen_random_uuid(), p_id, p_id::text, 'email',
+        jsonb_build_object('sub', p_id::text, 'email', p_email, 'email_verified', true),
         now(), now(), now()
     );
+    return p_id;
+end;
+$$;
 
-    insert into public.paciente (
-        auth_user_id, nome, cpf, email, genero, telefone, endereco, cartao_sus, data_nascimento
-    ) values (
-        v_user_id, 'Maria Teste', '12345678900', v_email, 'Feminino', '(41) 99999-0000',
-        'Rua das Palmeiras, Número 150, Bairro Centro, Curitiba - PR, CEP 80000-000',
-        '898 0012 3456 7890', '1990-05-15'
-    );
-end $$;
+-- ---------------------------------------------------------------------------
+-- Paciente de teste
+--   CPF:   123.456.789-00
+--   Senha: ABC123!@#ab
+-- ---------------------------------------------------------------------------
+insert into public.paciente (
+    auth_user_id, nome, cpf, email, genero, telefone, endereco, cartao_sus, data_nascimento
+) values (
+    pg_temp.criar_usuario('11111111-1111-1111-1111-111111111111', 'teste@agendasus.dev', 'ABC123!@#ab',
+                          '{"display_name": "Maria Teste", "cpf": "12345678900"}'),
+    'Maria Teste', '12345678900', 'teste@agendasus.dev', 'Feminino', '(41) 99999-0000',
+    'Rua das Palmeiras, Número 150, Bairro Centro, Curitiba - PR, CEP 80000-000',
+    '898 0012 3456 7890', '1990-05-15'
+);
+
+-- Paciente sem conta no app (cadastrado pela unidade), para a agenda do portal ter volume.
+insert into public.paciente (nome, cpf, email, telefone)
+values ('José Pereira', '98765432100', 'jose.pereira@exemplo.dev', '(46) 98888-1234');
+
+-- ---------------------------------------------------------------------------
+-- Servidores das unidades (portal: http://localhost:8081/portal)
+--   Senha de todos: Servidor@123
+-- ---------------------------------------------------------------------------
+insert into public.servidor (auth_user_id, unidade_saude_id, nome, email, matricula, perfil, ativo) values
+    (pg_temp.criar_usuario('22222222-0000-0000-0000-000000000001', 'recepcao.dv@agendasus.dev', 'Servidor@123',
+                           '{"display_name": "Ana Recepção"}'),
+     5, 'Ana Recepção', 'recepcao.dv@agendasus.dev', 'DV-001', 'atendente', true),
+    (pg_temp.criar_usuario('22222222-0000-0000-0000-000000000002', 'gestor.central@agendasus.dev', 'Servidor@123',
+                           '{"display_name": "Carlos Gestor"}'),
+     1, 'Carlos Gestor', 'gestor.central@agendasus.dev', 'CT-001', 'gestor', true),
+    (pg_temp.criar_usuario('22222222-0000-0000-0000-000000000003', 'inativo.central@agendasus.dev', 'Servidor@123',
+                           '{"display_name": "Bruno Desligado"}'),
+     1, 'Bruno Desligado', 'inativo.central@agendasus.dev', 'CT-002', 'atendente', false);
 
 -- Consultas do usuário de teste: próximas (tela inicial / Minhas consultas) e passadas (Histórico).
 -- Os horários são de parede na unidade e viram instante com o fuso dela ("at time zone").
@@ -114,3 +140,17 @@ cross join lateral (values
 ) as c(unidade, status, hora_local, especialidade)
 join public.unidade_saude u on u.id = c.unidade
 where p.cpf = '12345678900';
+
+-- Consultas do José: hoje e amanhã em Dois Vizinhos, hoje na UBS Central.
+insert into public.consulta (paciente_id, unidade_saude_id, status, data_hora, especialidade)
+select p.id, c.unidade, 'agendada', c.hora_local at time zone u.fuso_horario, c.especialidade
+from public.paciente p
+cross join (select (now() at time zone 'America/Sao_Paulo')::date as hoje) d
+cross join lateral (values
+    (5, d.hoje       + time '10:00', 'Clínico Geral'),
+    (5, d.hoje       + time '15:30', 'Dentista'),
+    (5, (d.hoje + 1) + time '09:00', 'Pediatra'),
+    (1, d.hoje       + time '11:00', 'Cardiologista')
+) as c(unidade, hora_local, especialidade)
+join public.unidade_saude u on u.id = c.unidade
+where p.cpf = '98765432100';
