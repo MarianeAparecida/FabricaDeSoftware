@@ -5,6 +5,7 @@ import { Top_Bar } from "../../../src/components/topBar";
 import { AuthContext } from "../../../src/contexts/AuthContext";
 import {
     criarConsulta,
+    ERRO_HORARIO_INDISPONIVEL,
     buscarPacientePorAuthId,
     combinarDataHora,
     buscarHorariosDisponiveis,
@@ -56,6 +57,7 @@ export default function Agendamento() {
         data: horariosDisponiveis,
         loading: loadingHorarios,
         error: erroHorarios,
+        refresh: recarregarHorarios,
     } = useQuery<string[]>(async () => {
         if (!day) {
             return { data: [], error: null };
@@ -91,6 +93,13 @@ export default function Agendamento() {
                 status: "agendada",
                 especialidade: profissionalSelecionado.especialidade || profissionalSelecionado.nome
             });
+
+            if (error?.code === ERRO_HORARIO_INDISPONIVEL) {
+                setSelectedTime(null);
+                await recarregarHorarios();
+                Alert.alert("Horario indisponivel", error.message);
+                return;
+            }
 
             if (error) throw new Error("Falha na criação");
 

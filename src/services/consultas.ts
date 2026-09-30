@@ -1,6 +1,8 @@
 import { supabase } from './supabase';
 import { FUSO_PADRAO, noFuso, paraIsoComFuso } from '../utils/fusoHorario';
 
+export const ERRO_HORARIO_INDISPONIVEL = 'HORARIO_INDISPONIVEL';
+
 const timeout = async <T>(promise: PromiseLike<T>, controller: AbortController, ms: number = 30000): Promise<T> => {
     const timeoutId = setTimeout(() => controller.abort(), ms);
 
@@ -39,6 +41,21 @@ async function executarQuery<T>(
     } catch (err: any) {
         return { data: null, error: { message: err.message || mensagemErroPadrao } };
     }
+}
+
+function ehConflitoDeHorario(error: any): boolean {
+    const detalhe = error?.details || error;
+    const texto = [
+        error?.message,
+        detalhe?.message,
+        detalhe?.details,
+        detalhe?.hint,
+    ].filter(Boolean).join(' ');
+
+    return detalhe?.code === '23505'
+        || texto.includes('consulta_profissional_horario_unico_idx')
+        || texto.includes('consulta_sem_profissional_horario_unico_idx')
+        || texto.includes('consulta_horario_unico_idx');
 }
 
 export type Paciente = {
@@ -141,7 +158,20 @@ export async function criarConsulta(consulta: Omit<Consulta, 'id'>) {
         .select()
         .single();
 
-    return executarQuery<Consulta>(query, 15000, 'Não foi possível salvar seu agendamento. Verifique sua conexão.');
+    const resultado = await executarQuery<Consulta>(query, 15000, 'Não foi possível salvar seu agendamento. Verifique sua conexão.');
+
+    if (resultado.error && ehConflitoDeHorario(resultado.error)) {
+        return {
+            data: null,
+            error: {
+                code: ERRO_HORARIO_INDISPONIVEL,
+                message: 'Horario indisponivel. Escolha outro horario disponivel.',
+                details: resultado.error.details || resultado.error,
+            },
+        };
+    }
+
+    return resultado;
 }
 
 export async function buscarConsultasPaciente(pacienteId: number) {
