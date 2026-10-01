@@ -38,7 +38,7 @@ insert into public.medicamento (id, nome, dose_mg) values
     (7, 'Omeprazol',       20),
     (8, 'Sinvastatina',    20);
 
-insert into public.disponibilidade (id_medicamento, id_unidade_saude, unidades_disponiveis) values
+insert into public.disponibilidade (id_medicamento, id_unidade, unidades_disponiveis) values
     (1, 1, 120), (1, 2, 40),
     (2, 1, 0),   (2, 3, 75),
     (3, 2, 30),
