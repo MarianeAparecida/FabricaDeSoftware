@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from "react-native";
+import React, { useEffect, useState, useMemo } from "react";
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, TextInput, Modal } from "react-native";
 import { useRouter } from "expo-router";
 import { Top_Bar } from "../../src/components/topBar";
 import { Portal_Styles } from "../../src/styles/portalStyles";
@@ -9,6 +9,7 @@ import { useQuery } from "../../src/services/useQuery";
 import { ConsultaAgenda, PerfilServidor, atualizarStatus, buscarAgenda, buscarEquipe } from "../../src/services/portal";
 import { hojeNoFuso, noFuso, somarDias } from "../../src/utils/fusoHorario";
 import { formatarData } from "../../src/utils/formatarData";
+import CustomCalendar from "../../src/components/CustomCalendar";
 
 type Status = ConsultaAgenda["status"];
 type NovoStatus = Exclude<Status, "agendada">;
@@ -33,7 +34,6 @@ const ACOES: Partial<Record<Status, { status: NovoStatus; rotulo: string }[]>> =
   ],
 };
 
-// Alert.alert não aparece na versão web.
 function confirmar(texto: string): Promise<boolean> {
   if (Platform.OS === "web") return Promise.resolve((globalThis as any).confirm(texto));
   return new Promise((resolve) =>
@@ -100,10 +100,12 @@ function Agenda({ perfil }: { perfil: PerfilServidor }) {
   const { sair } = usePortal();
   const fuso = perfil.unidade_fuso;
 
-  // O "hoje" da agenda é o da unidade, não o do computador do servidor.
   const [dia, setDia] = useState(() => hojeNoFuso(fuso));
   const [aviso, setAviso] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
   const [alterando, setAlterando] = useState<number | null>(null);
+  
+  const [filtro, setFiltro] = useState("");
+  const [mostrarCalendario, setMostrarCalendario] = useState(false);
 
   const { data: consultas, loading, error, refresh } = useQuery(() => buscarAgenda(dia), [dia]);
 
@@ -114,6 +116,23 @@ function Agenda({ perfil }: { perfil: PerfilServidor }) {
     faltou: theme.warning,
     cancelada: theme.danger,
   };
+
+  const consultasOrdenadas = useMemo(() => {
+    if (!consultas) return [];
+    return [...consultas].sort(
+      (a, b) => new Date(a.data_hora).getTime() - new Date(b.data_hora).getTime()
+    );
+  }, [consultas]);
+
+  const consultasFiltradas = useMemo(() => {
+    if (!filtro.trim()) return consultasOrdenadas;
+    const termo = filtro.toLowerCase().trim();
+    return consultasOrdenadas.filter((c) => {
+      const especialidade = (c.especialidade || "").toLowerCase();
+      const profissional = ((c as any).profissional_nome || (c as any).profissional || "").toLowerCase();
+      return especialidade.includes(termo) || profissional.includes(termo);
+    });
+  }, [consultasOrdenadas, filtro]);
 
   async function mudarStatus(c: ConsultaAgenda, novo: NovoStatus) {
     const hora = noFuso(c.data_hora, fuso).hora;
@@ -151,21 +170,102 @@ function Agenda({ perfil }: { perfil: PerfilServidor }) {
           </View>
 
           <Text style={styles.secao_titulo}>Agenda da unidade</Text>
+
+          {/* Controle de navegação de data */}
           <View style={styles.navegacao_dia}>
             <TouchableOpacity style={styles.navegacao_botao} onPress={() => { setDia(somarDias(dia, -1)); setAviso(null); }}>
               <Text style={styles.navegacao_texto}>{"< Anterior"}</Text>
             </TouchableOpacity>
-            <View>
+            
+            <View style={{ alignItems: "center" }}>
               <Text style={styles.dia_rotulo}>{rotuloDia(dia)}</Text>
+              
+              <TouchableOpacity onPress={() => setMostrarCalendario(true)}>
+                <Text style={styles.link}>Abrir calendário</Text>
+              </TouchableOpacity>
+
               {dia !== hojeNoFuso(fuso) && (
-                <TouchableOpacity onPress={() => { setDia(hojeNoFuso(fuso)); setAviso(null); }}>
-                  <Text style={styles.link}>Ir para hoje</Text>
+                <TouchableOpacity onPress={() => { 
+                  setDia(hojeNoFuso(fuso)); 
+                  setAviso(null); 
+                  setMostrarCalendario(false); 
+                }}>
+                  <Text style={[styles.link, { marginTop: 4 }]}>Ir para hoje</Text>
                 </TouchableOpacity>
               )}
             </View>
+
             <TouchableOpacity style={styles.navegacao_botao} onPress={() => { setDia(somarDias(dia, 1)); setAviso(null); }}>
               <Text style={styles.navegacao_texto}>{"Próximo >"}</Text>
             </TouchableOpacity>
+          </View>
+
+          <Modal
+            visible={mostrarCalendario}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setMostrarCalendario(false)}
+          >
+            <View style={{
+              flex: 1,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 8
+            }}>
+              <View style={{
+                backgroundColor: theme.background,
+                borderRadius: 12,
+                padding: 16,
+                width: "100%",
+                maxWidth: 400,
+                elevation: 5,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+              }}>
+                <Text style={[styles.secao_titulo, { marginBottom: 12, textAlign: "center" }]}>
+                  Selecione uma data
+                </Text>
+                
+                <CustomCalendar
+                  selectedDate={dia}
+                  onSelectDate={(novaData) => {
+                    setDia(novaData);
+                    setAviso(null);
+                    setMostrarCalendario(false);
+                  }}
+                  minDate="2020-01-01"
+                  theme={theme}
+                />
+
+                <TouchableOpacity
+                  style={[styles.botao, { marginTop: 16, backgroundColor: theme.placeholder }]}
+                  onPress={() => setMostrarCalendario(false)}
+                >
+                  <Text style={styles.botao_texto}>Fechar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          <View style={{ marginBottom: 15 }}>
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: theme.placeholder,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                color: theme.text,
+                backgroundColor: theme.background,
+              }}
+              placeholder="Buscar por profissional ou especialidade..."
+              placeholderTextColor={theme.placeholder}
+              value={filtro}
+              onChangeText={setFiltro}
+            />
           </View>
 
           {aviso && (
@@ -178,16 +278,25 @@ function Agenda({ perfil }: { perfil: PerfilServidor }) {
             <ActivityIndicator style={{ marginTop: 20 }} color={theme.primary} />
           ) : error ? (
             <Text style={styles.erro}>{error}</Text>
-          ) : !consultas?.length ? (
-            <Text style={styles.vazio}>Nenhuma consulta neste dia.</Text>
+          ) : !consultasFiltradas.length ? (
+            <Text style={styles.vazio}>
+              {filtro ? "Nenhuma consulta encontrada para esta busca." : "Nenhuma consulta neste dia."}
+            </Text>
           ) : (
-            consultas.map((c) => (
+            consultasFiltradas.map((c) => (
               <View key={c.consulta_id} style={styles.item}>
                 <View style={styles.item_linha}>
                   <Text style={styles.item_hora}>{noFuso(c.data_hora, fuso).hora}</Text>
                   <Text style={[styles.status, { color: corStatus[c.status] }]}>{ROTULO_STATUS[c.status]}</Text>
                 </View>
-                <Text style={styles.item_texto}>{c.paciente_nome} · {c.especialidade || "Consulta"}</Text>
+                <Text style={styles.item_texto}>
+                  {c.paciente_nome} · {c.especialidade || "Consulta"}
+                </Text>
+                {(c as any).profissional_nome && (
+                  <Text style={styles.item_detalhe}>
+                    Profissional: {(c as any).profissional_nome}
+                  </Text>
+                )}
                 <Text style={styles.item_detalhe}>
                   CPF {c.paciente_cpf}{c.paciente_telefone ? ` · ${c.paciente_telefone}` : ""}
                 </Text>
@@ -219,7 +328,6 @@ function Agenda({ perfil }: { perfil: PerfilServidor }) {
   );
 }
 
-// Só aparece para o perfil gestor (o banco também recusa portal_equipe para atendentes).
 function Equipe() {
   const { theme } = useTheme();
   const styles = Portal_Styles(theme);
