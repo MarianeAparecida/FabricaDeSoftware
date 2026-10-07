@@ -1,0 +1,15 @@
+appId: com.anonymous.AgendaSUS
+---
+- launchApp:
+    clearState: true
+- runScript:
+    file: us02-disponibilidade-por-profissional.js
+- assertTrue:
+    condition: ${output.horarioSumiuParaProfissionalA == true}
+    label: "Horário ocupado não aparece como disponível para o profissional A"
+- assertTrue:
+    condition: ${output.horarioContinuaLivreParaB == true}
+    label: "Mesmo horário continua disponível para o outro profissional da unidade"
+- assertTrue:
+    condition: ${output.semUnidadeRetornaErro == true}
+    label: "Busca sem unidade retorna erro em vez de lista vazia"

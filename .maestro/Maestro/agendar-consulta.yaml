@@ -1,0 +1,45 @@
+appId: com.anonymous.AgendaSUS
+---
+- launchApp:
+    clearState: true
+- tapOn: "http://10.0.2.2:8081"
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 10000
+    optional: true
+- tapOn:
+    text: "Continue"
+    optional: true
+- back:
+    optional: true
+- extendedWaitUntil:
+    visible: "CPF"
+    timeout: 15000
+- tapOn: "CPF"
+- inputText: "${PACIENTE_CPF}"
+- tapOn:
+    text: "Senha"
+    index: 1
+- inputText: "${PACIENTE_SENHA}"
+- tapOn: "Acessar"
+- assertVisible: "Olá, Usuário!"
+- tapOn: "Agendar consulta"
+- scrollUntilVisible:
+    element:
+      text: "ESF da Luz"
+    direction: DOWN
+- tapOn: "ESF da Luz"
+- tapOn: "Murilo de Araújo"
+- tapOn: "Próximo"
+- runScript:
+    file: consultar-grade.js
+- repeat:
+    times: "${output.mesesNavegados}"
+    commands:
+      - tapOn:
+          point: "95%,25%"
+- tapOn: "${output.diaDoMes}"
+- tapOn: "${output.horario}"
+- tapOn: "Confirmar Agendamento"
+- tapOn: "OK"
+- assertVisible: "Olá, Usuário!"

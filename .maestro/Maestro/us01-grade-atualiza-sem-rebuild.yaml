@@ -1,0 +1,47 @@
+appId: com.anonymous.AgendaSUS
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "http://.*:80.*"
+    timeout: 60000
+- tapOn: "http://.*:80.*"
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 20000
+    optional: true
+- tapOn:
+    text: "Continue"
+    optional: true
+- back:
+    optional: true
+- extendedWaitUntil:
+    visible: "CPF"
+    timeout: 30000
+- tapOn: "CPF"
+- inputText: "${PACIENTE_CPF}"
+- tapOn:
+    text: "Senha"
+    index: 1
+- inputText: "${PACIENTE_SENHA}"
+- tapOn: "Acessar"
+- assertVisible: "Olá, Usuário!"
+- runScript:
+    file: us01-grade-atualiza-sem-rebuild-setup.js
+- tapOn: "Agendar consulta"
+- scrollUntilVisible:
+    element:
+      text: "ESF da Luz"
+    direction: DOWN
+- tapOn: "ESF da Luz"
+- tapOn: "Murilo de Araújo"
+- tapOn: "Próximo"
+- repeat:
+    times: "${output.mesesNavegados}"
+    commands:
+      - tapOn:
+          point: "95%,25%"
+- tapOn: "${output.diaDoMes}"
+- assertVisible: "${output.horarioEsperado}"
+- runScript:
+    file: us01-grade-atualiza-sem-rebuild-cleanup.js

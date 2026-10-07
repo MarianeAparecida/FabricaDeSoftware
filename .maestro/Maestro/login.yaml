@@ -1,0 +1,25 @@
+appId: com.anonymous.AgendaSUS
+---
+- launchApp:
+    clearState: true
+- tapOn: "http://10.0.2.2:8081"
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 10000
+    optional: true
+- tapOn:
+    text: "Continue"
+    optional: true
+- back:
+    optional: true
+- extendedWaitUntil:
+    visible: "CPF"
+    timeout: 15000
+- tapOn: "CPF"
+- inputText: "${PACIENTE_CPF}"
+- tapOn:
+    text: "Senha"
+    index: 1
+- inputText: "${PACIENTE_SENHA}"
+- tapOn: "Acessar"
+- assertVisible: "Olá, Usuário!"

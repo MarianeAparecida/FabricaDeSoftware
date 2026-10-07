@@ -1,0 +1,12 @@
+appId: com.anonymous.AgendaSUS
+---
+- launchApp:
+    clearState: true
+- runScript:
+    file: us03-impede-dupla-marcacao.js
+- assertTrue:
+    condition: ${output.primeiraInsercaoOk == true}
+    label: "Primeira consulta foi criada com sucesso"
+- assertTrue:
+    condition: ${output.segundaInsercaoBloqueada == true}
+    label: "Segunda consulta no mesmo horário foi bloqueada pelo índice único"
