@@ -4,7 +4,6 @@ import {
   Text,
   KeyboardAvoidingView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Platform,
 } from "react-native";
@@ -12,7 +11,8 @@ import { Validar_Styles } from "../../src/styles/validarStyles";
 import { Top_Bar } from "../../src/components/topBar";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import BarraProgresso from "../../src/components/barra_progresso";
-import { supabase } from "../../src/services/supabase";
+import { solicitarRecuperacaoSenha } from "../../src/services/recuperacaoSenha";
+import { alertar } from "../../src/utils/alerta";
 import { useTheme } from "../../src/contexts/ThemeContext";
 
 export default function Validar() {
@@ -27,23 +27,21 @@ export default function Validar() {
 
   async function handleResend() {
     if (!cpf) {
-      Alert.alert("Erro", "CPF não disponível para reenviar o e-mail.");
+      alertar("Erro", "CPF não disponível para reenviar o e-mail.");
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke("send-email", {
-        body: { cpf, action: "reset" },
-      });
+      const { error } = await solicitarRecuperacaoSenha(cpf);
 
       if (error) throw error;
 
-      Alert.alert("Sucesso", "E-mail de recuperação reenviado.");
+      alertar("Sucesso", "E-mail de recuperação reenviado.");
       setEmailSent(true);
     } catch (err) {
       console.error(err);
-      Alert.alert("Erro", "Não foi possível reenviar o e-mail. Tente novamente mais tarde.");
+      alertar("Erro", "Não foi possível reenviar o e-mail. Tente novamente mais tarde.");
     } finally {
       setLoading(false);
     }

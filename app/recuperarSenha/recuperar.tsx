@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator, } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, } from "react-native";
 import { Recuperar_Styles } from "../../src/styles/recuperarStyles";
 import { Top_Bar } from "../../src/components/topBar";
 import { TextInput as PaperInput } from "react-native-paper";
 import { useNavigation, useRouter } from "expo-router";
 import BarraProgresso from "../../src/components/barra_progresso";
 import { formatCPF } from "../../src/utils/formatarCpf";
-import { supabase } from "../../src/services/supabase";
+import { solicitarRecuperacaoSenha } from "../../src/services/recuperacaoSenha";
+import { alertar } from "../../src/utils/alerta";
 import { useTheme } from "../../src/contexts/ThemeContext";
 
 export default function Recuperar() {
@@ -19,38 +20,31 @@ export default function Recuperar() {
   async function handleProximo() {
     const cleanCpf = cpf.replace(/\D/g, "");
     if (!cpf || cleanCpf.length !== 11) {
-      Alert.alert("Atenção", "Digite um CPF válido com 11 dígitos.");
+      alertar("Atenção", "Digite um CPF válido com 11 dígitos.");
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke("send-email", {
-        body: { cpf: cleanCpf, action: "reset" },
-      });
+      const { error } = await solicitarRecuperacaoSenha(cleanCpf);
 
       if (error) {
         console.error("Erro ao chamar função:", error);
-        Alert.alert("Erro", "Não foi possível enviar o e-mail. Tente novamente mais tarde.");
+        alertar("Erro", "Não foi possível enviar o e-mail. Tente novamente mais tarde.");
       } else {
-        Alert.alert(
+        alertar(
           "Sucesso",
           "Um e-mail de recuperação foi enviado para o usuário com esse CPF, se existir.",
-          [
-            {
-              text: "OK",
-              onPress: () =>
-                router.push({
-                  pathname: "/recuperarSenha/validar",
-                  params: { cpf: cleanCpf },
-                }),
-            },
-          ]
+          () =>
+            router.push({
+              pathname: "/recuperarSenha/validar",
+              params: { cpf: cleanCpf },
+            })
         );
       }
     } catch (err) {
       console.error("Erro inesperado:", err);
-      Alert.alert("Erro", "Ocorreu um erro inesperado. Tente novamente.");
+      alertar("Erro", "Ocorreu um erro inesperado. Tente novamente.");
     } finally {
       setLoading(false);
     }
