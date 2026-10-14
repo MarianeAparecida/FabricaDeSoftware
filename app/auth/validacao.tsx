@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Validacao_Styles } from "../../src/styles/validacaoStyles";
 import { Top_Bar } from "../../src/components/topBar";
 import { TextInput as PaperInput } from "react-native-paper";
@@ -7,6 +7,7 @@ import { CadastroContext } from "../../src/contexts/CadastroContext";
 import { supabase } from "../../src/services/supabase";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../src/contexts/ThemeContext";
+import { alertar } from "../../src/utils/alerta";
 
 export default function Validacao() {
   const { theme } = useTheme();
@@ -27,7 +28,7 @@ export default function Validacao() {
 
   function showError(message: string) {
     console.error("[Validacao] showError:", message);
-    Alert.alert("Erro", message);
+    alertar("Erro", message);
   }
 
   async function handleProximo() {
@@ -42,15 +43,10 @@ export default function Validacao() {
 
       if (error || data?.error) return showError(error?.message || data?.error || "Falha ao registrar usuário.");
 
-      Alert.alert("Sucesso", "Conta criada com sucesso!", [
-        {
-          text: "OK",
-          onPress: () => {
-            router.replace("/auth/login");
-            clearCadastro();
-          },
-        },
-      ]);
+      alertar("Sucesso", "Conta criada com sucesso!", () => {
+        router.replace("/auth/login");
+        clearCadastro();
+      });
     } catch (err: any) {
       console.error("[Validacao] handleProximo catch error:", err);
       if (err?.message?.includes("fetch")) return showError("Falha de conexão. Verifique sua internet e tente novamente.");

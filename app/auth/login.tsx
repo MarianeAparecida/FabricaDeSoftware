@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Login_Styles } from "../../src/styles/loginStyles";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import { Top_Bar } from "../../src/components/topBar";
@@ -9,6 +9,7 @@ import { formatCPF } from "../../src/utils/formatarCpf";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../src/contexts/ThemeContext";
 import { useRouter } from "expo-router";
+import { alertar } from "../../src/utils/alerta";
 
 export default function Login() {
   const { theme } = useTheme();
@@ -22,13 +23,13 @@ export default function Login() {
 
   async function handleLogin() {
     if (!cpf || !password) {
-      Alert.alert("Atenção", "Preencha CPF e senha!");
+      alertar("Atenção", "Preencha CPF e senha!");
       return;
     }
 
     const cleanCpf = cpf.replace(/\D/g, "");
     if (cleanCpf.length !== 11) {
-      Alert.alert("Atenção", "CPF inválido! Deve conter 11 dígitos.");
+      alertar("Atenção", "CPF inválido! Deve conter 11 dígitos.");
       return;
     }
 
@@ -36,7 +37,7 @@ export default function Login() {
       await signIn(cleanCpf, password);
       router.replace("/home");
     } catch (error: any) {
-      Alert.alert("Erro ao entrar", error.message || "CPF ou senha incorretos.");
+      alertar("Erro ao entrar", error.message || "CPF ou senha incorretos.");
     }
   }
   async function testeUser() {

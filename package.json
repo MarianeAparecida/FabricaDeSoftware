@@ -11,7 +11,9 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:status": "supabase status",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "smtp:configurar": "node scripts/configurar-smtp.mjs",
+    "smtp:test": "node --test scripts/configurar-smtp.test.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
