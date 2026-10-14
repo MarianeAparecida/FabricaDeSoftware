@@ -1,0 +1,13 @@
+.git
+.gitignore
+.expo
+.eas
+.maestro
+dist
+node_modules
+npm-debug.log*
+*.zip
+.env*
+!.env.example
+supabase/.temp
+supabase/.branches

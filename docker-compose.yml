@@ -1,0 +1,11 @@
+services:
+  agendasus:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        EXPO_PUBLIC_SUPABASE_URL: ${EXPO_PUBLIC_SUPABASE_URL:?defina EXPO_PUBLIC_SUPABASE_URL}
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: ${EXPO_PUBLIC_SUPABASE_ANON_KEY:?defina EXPO_PUBLIC_SUPABASE_ANON_KEY}
+    ports:
+      - "${APP_PORT:-8080}:80"
+    restart: unless-stopped
