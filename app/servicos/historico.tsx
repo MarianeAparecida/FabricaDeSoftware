@@ -19,7 +19,18 @@ type Consulta = {
     especialista: string;
     date: string;
     hora: string;
-    status: 'Realizada' | 'Faltou' | 'Cancelada';
+    status: 'Realizada' | 'Faltou' | 'Cancelada' | 'Sem registro';
+};
+
+const STATUS_ENCERRADOS = new Set(['realizada', 'faltou', 'cancelada']);
+
+const statusParaHistorico = (status?: string): Consulta['status'] => {
+    switch (status) {
+        case 'realizada': return 'Realizada';
+        case 'faltou': return 'Faltou';
+        case 'cancelada': return 'Cancelada';
+        default: return 'Sem registro';
+    }
 };
 
 const formatarData = (dateString: string) => {
@@ -45,7 +56,7 @@ export default function Historico() {
 
         const agora = new Date();
         const formatadas = consultas
-            .filter(c => new Date(c.data_hora) < agora || c.status === 'cancelada' || c.status === 'faltou')
+            .filter(c => new Date(c.data_hora) < agora || STATUS_ENCERRADOS.has(c.status || ''))
             .map(c => {
                 // Data e hora no fuso da unidade: iguais em qualquer aparelho
                 const { data: dataParte, hora } = noFuso(c.data_hora, fusoDaConsulta(c));
@@ -55,7 +66,7 @@ export default function Historico() {
                     especialista: c.especialidade || 'Consulta Médica',
                     date: dataParte,
                     hora: hora,
-                    status: c.status === 'cancelada' ? 'Cancelada' : (c.status === 'faltou' ? 'Faltou' : 'Realizada') as any,
+                    status: statusParaHistorico(c.status),
                 };
             })
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -75,6 +86,7 @@ export default function Historico() {
             case 'Realizada': return { icon: 'check-circle', color: theme.success };
             case 'Faltou': return { icon: 'close-circle', color: theme.warning };
             case 'Cancelada': return { icon: 'cancel', color: theme.danger };
+            case 'Sem registro': return { icon: 'information-outline', color: theme.placeholder };
         }
     };
 
