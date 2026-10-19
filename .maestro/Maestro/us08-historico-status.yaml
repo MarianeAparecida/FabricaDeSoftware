@@ -1,0 +1,49 @@
+appId: com.anonymous.AgendaSUS
+onFlowComplete:
+  - runScript:
+      file: us08-historico-status-cleanup.js
+---
+- runScript:
+    file: us08-historico-status-setup.js
+- runFlow: login.yaml
+- tapOn: "Meu histórico"
+- assertVisible: "Histórico"
+
+# Consulta futura não deve aparecer no histórico
+- assertNotVisible: ".*TESTE US08 AUTO futura.*"
+
+# Critério 1: consulta realizada aparece como "Realizada"
+- scrollUntilVisible:
+    element:
+      text: ".*TESTE US08 AUTO realizada.*"
+    direction: DOWN
+    centerElement: true
+- assertVisible:
+    text: "Realizada"
+    below: ".*TESTE US08 AUTO realizada.*"
+
+# Critério 2: consulta com falta aparece como "Faltou"
+- scrollUntilVisible:
+    element:
+      text: ".*TESTE US08 AUTO faltou.*"
+    direction: DOWN
+    centerElement: true
+- assertVisible:
+    text: "Faltou"
+    below: ".*TESTE US08 AUTO faltou.*"
+
+# Critério 3: consulta passada sem registro aparece como "Sem registro"
+- scrollUntilVisible:
+    element:
+      text: ".*TESTE US08 AUTO semregistro.*"
+    direction: DOWN
+    centerElement: true
+- assertVisible:
+    text: "Sem registro"
+    below: ".*TESTE US08 AUTO semregistro.*"
+
+# Voltar para a tela inicial pelo botão de voltar (seta do cabeçalho)
+- tapOn:
+    point: "5%,14%"
+- assertVisible: "Olá, Usuário!"
+- assertVisible: "Meu histórico"
