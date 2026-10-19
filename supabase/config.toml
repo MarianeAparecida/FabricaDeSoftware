@@ -242,6 +242,13 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# AgendaSUS: no ambiente local os e-mails continuam indo para o Mailpit (http://127.0.0.1:54324).
+# No projeto da nuvem, o SMTP externo é configurado por `npm run smtp:configurar`
+# (veja docs/envio-de-email.md), que também envia este mesmo template.
+[auth.email.template.recovery]
+subject = "AgendaSUS - Redefinição de senha"
+content_path = "./supabase/templates/recuperacao.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { CadastroStyles } from "../../src/styles/cadastroStyles";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import { Top_Bar } from "../../src/components/topBar";
@@ -9,6 +9,7 @@ import { CadastroContext } from "../../src/contexts/CadastroContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../src/contexts/ThemeContext";
+import { alertar } from "../../src/utils/alerta";
 
 export default function Cadastro() {
     const { theme } = useTheme();
@@ -27,34 +28,34 @@ export default function Cadastro() {
     const validarCampos = async () => {
         try {
             if (!username.trim() || !cpf.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-                return Alert.alert("Atenção", "Todos os campos devem ser preenchidos!");
+                return alertar("Atenção", "Todos os campos devem ser preenchidos!");
             }
 
             if (username.trim().length < 5) {
-                return Alert.alert("Atenção", "O usuário deve ter no mínimo 5 caracteres!");
+                return alertar("Atenção", "O usuário deve ter no mínimo 5 caracteres!");
             }
 
             const regexCPF = /^\d{11}$/;
             if (!regexCPF.test(cpf)) {
-                return Alert.alert("Atenção", "O CPF deve conter exatamente 11 dígitos numéricos!");
+                return alertar("Atenção", "O CPF deve conter exatamente 11 dígitos numéricos!");
             }
 
             const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!regexEmail.test(email)) {
-                return Alert.alert("Atenção", "Digite um e-mail válido!");
+                return alertar("Atenção", "Digite um e-mail válido!");
             }
 
             if (password !== confirmPassword) {
                 setPassword("");
                 setConfirmPassword("");
-                return Alert.alert("Atenção", "As senhas não são iguais!");
+                return alertar("Atenção", "As senhas não são iguais!");
             }
 
             const senhaForte = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
             if (!senhaForte.test(password)) {
                 setPassword("");
                 setConfirmPassword("");
-                return Alert.alert(
+                return alertar(
                     "Atenção",
                     "A senha deve ter no mínimo 8 caracteres e conter pelo menos:\n- Uma letra maiúscula\n- Uma letra minúscula\n- Um número\n- Um caractere especial"
                 );
@@ -65,7 +66,7 @@ export default function Cadastro() {
             router.push("/auth/validacao");
         } catch (err) {
             console.error("Erro inesperado no cadastro:", err);
-            Alert.alert("Erro", "Ocorreu um erro inesperado. Tente novamente.");
+            alertar("Erro", "Ocorreu um erro inesperado. Tente novamente.");
         }
     };
 
@@ -164,7 +165,7 @@ export default function Cadastro() {
 
                 <View style={styles.gov_box_container}>
                     <View style={styles.gov_box}>
-                        <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 10 }} activeOpacity={0.7} onPress={() => Alert.alert("Work in progress!")}>
+                        <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 10 }} activeOpacity={0.7} onPress={() => alertar("Work in progress!")}>
                             <Fontisto name="world" size={18} color={theme.primary} />
                             <Text style={{ color: theme.primary }}>Entrar com o gov.br</Text>
                         </TouchableOpacity>

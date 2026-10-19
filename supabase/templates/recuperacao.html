@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redefinição de senha - AgendaSUS</title>
+</head>
+<body style="margin:0;padding:0;background:#f2f5f9;font-family:Arial,Helvetica,sans-serif;color:#1f2933;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f5f9;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1351b4;padding:20px 24px;color:#ffffff;font-size:20px;font-weight:bold;">
+              AgendaSUS
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px;font-size:15px;line-height:1.5;">
+              <p style="margin:0 0 16px;">Olá,</p>
+              <p style="margin:0 0 16px;">
+                Recebemos um pedido para redefinir a senha da sua conta no AgendaSUS.
+                Para criar uma nova senha, toque no botão abaixo:
+              </p>
+              <p style="margin:24px 0;text-align:center;">
+                <a href="{{ .ConfirmationURL }}"
+                   style="display:inline-block;background:#1351b4;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:6px;">
+                  Redefinir minha senha
+                </a>
+              </p>
+              <p style="margin:0 0 16px;font-size:13px;color:#52606d;">
+                Se o botão não funcionar, copie e cole este endereço no navegador:<br>
+                <a href="{{ .ConfirmationURL }}" style="color:#1351b4;word-break:break-all;">{{ .ConfirmationURL }}</a>
+              </p>
+              <p style="margin:0 0 16px;font-size:13px;color:#52606d;">
+                O link vale por 1 hora e só pode ser usado uma vez.
+                Se você não pediu a redefinição, ignore este e-mail: sua senha continua a mesma.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 24px;background:#f7f9fb;font-size:12px;color:#7b8794;">
+              Mensagem automática do AgendaSUS. Não responda este e-mail.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

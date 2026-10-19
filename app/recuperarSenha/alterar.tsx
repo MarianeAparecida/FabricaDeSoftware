@@ -4,7 +4,6 @@ import {
   Text,
   KeyboardAvoidingView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Platform,
 } from "react-native";
@@ -17,11 +16,13 @@ import BarraProgresso from "../../src/components/barra_progresso";
 import { supabase } from "../../src/services/supabase";
 import { AuthContext } from "../../src/contexts/AuthContext";
 import { useTheme } from "../../src/contexts/ThemeContext";
+import { alertar } from "../../src/utils/alerta";
 
 export default function Alterar() {
   const { theme } = useTheme();
   const styles = Alterar_Styles(theme);
   const router = useRouter();
+  const { logged } = useContext(AuthContext);
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -35,19 +36,33 @@ export default function Alterar() {
         const initialUrl = await Linking.getInitialURL();
 
         if (!initialUrl) {
-          Alert.alert("Erro", "Link de recuperação inválido ou expirado.");
+          alertar("Erro", "Link de recuperação inválido ou expirado.");
           router.replace("/auth/login");
           return;
         }
         const url = initialUrl.includes("#") ? initialUrl.replace("#", "?") : initialUrl;
         const parsed = Linking.parse(url);
 
+        // O Supabase devolve o motivo no próprio link quando ele não vale mais
+        // (ex.: #error=access_denied&error_code=otp_expired).
+        const codigoErro = (parsed.queryParams?.error_code || parsed.queryParams?.error) as string | undefined;
+        if (codigoErro) {
+          alertar(
+            "Link inválido",
+            codigoErro === "otp_expired"
+              ? "Este link de recuperação expirou ou já foi usado. Solicite um novo e-mail para redefinir sua senha."
+              : "Este link de recuperação não é válido. Solicite um novo e-mail para redefinir sua senha.",
+            () => router.replace("/recuperarSenha/recuperar")
+          );
+          return;
+        }
+
         const access_token = parsed.queryParams?.access_token as string;
         const refresh_token = parsed.queryParams?.refresh_token as string;
 
         if (!access_token || !refresh_token) {
           console.error("[ERROR] Tokens missing in link", parsed.queryParams);
-          Alert.alert("Erro", "Link de recuperação inválido ou expirado.");
+          alertar("Erro", "Link de recuperação inválido ou expirado.");
           router.replace("/auth/login");
           return;
         }
@@ -56,7 +71,7 @@ export default function Alterar() {
 
         if (error) {
           console.error("[ERROR] Failed to set session:", error);
-          Alert.alert("Erro", "Não foi possível validar o link de recuperação.");
+          alertar("Erro", "Não foi possível validar o link de recuperação.");
           router.replace("/auth/login");
           return;
         }
@@ -64,7 +79,7 @@ export default function Alterar() {
         setReady(true);
       } catch (err) {
         console.error("[ERROR] initPasswordRecovery failed:", err);
-        Alert.alert("Erro", "Ocorreu um erro inesperado. Tente novamente.");
+        alertar("Erro", "Ocorreu um erro inesperado. Tente novamente.");
         router.replace("/auth/login");
       } finally {
         setLoading(false);
@@ -75,22 +90,20 @@ export default function Alterar() {
   }, []);
 
   const validarCampos = async () => {
-    const { logged } = useContext(AuthContext);
-    const router = useRouter();
     if (!senha.trim() || !confirmar.trim()) {
-      Alert.alert("Atenção", "Preencha todos os campos!");
+      alertar("Atenção", "Preencha todos os campos!");
       return;
     }
 
     if (senha !== confirmar) {
-      Alert.alert("Atenção", "As senhas não são iguais!");
+      alertar("Atenção", "As senhas não são iguais!");
       setConfirmar("");
       return;
     }
 
     const senhaForte = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     if (!senhaForte.test(senha)) {
-      Alert.alert(
+      alertar(
         "Atenção",
         "A senha deve ter no mínimo 8 caracteres e conter pelo menos:\n- Uma letra maiúscula\n- Uma letra minúscula\n- Um número\n- Um caractere especial"
       );
@@ -103,24 +116,17 @@ export default function Alterar() {
 
       if (error) {
         console.error("[ERROR] Failed to update password:", error);
-        Alert.alert("Erro", "Não foi possível redefinir a senha. Tente novamente.");
+        alertar("Erro", "Não foi possível redefinir a senha. Tente novamente.");
         return;
       }
 
-      Alert.alert("Sucesso", "Senha redefinida com sucesso!");
-
-      useEffect(() => {//teste para redirecionar apos alterar a senha
-        if (logged) {
-          router.replace("/home/(perfil)");
-        } else {
-          router.replace("/auth/login");
-        }
-      }, [logged]);
-      return null;
+      alertar("Sucesso", "Senha redefinida com sucesso!", () =>
+        router.replace(logged ? "/home/(perfil)" : "/auth/login")
+      );
 
     } catch (err) {
       console.error("[ERROR] Unexpected error during password update:", err);
-      Alert.alert("Erro", "Ocorreu um erro inesperado. Tente novamente.");
+      alertar("Erro", "Ocorreu um erro inesperado. Tente novamente.");
     } finally {
       setLoading(false);
     }
