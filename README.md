@@ -59,7 +59,7 @@ Aperte 'a' para abrir no emulador android ou 'w' par abrir na web<br>
 
 # Rodando uma build específica (android/web)
 Acesse o a build específica (pelo dashboard do expo.dev ou por um link)<br>
-Clique em "Open with Orbit" ou "Abrir com Orbit"<br>
+Clique em "Open with Orbit" ou "Abrir com Orbit"<br>.
 # Docker (versão web)
 
 Compila a versão web e serve com nginx na porta `8080`. A URL e a chave anon do Supabase entram no bundle no build:
