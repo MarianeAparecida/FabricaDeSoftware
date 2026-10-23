@@ -1,50 +1,78 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Recuperar_Styles } from "../../src/styles/recuperarStyles";
 import { Top_Bar } from "../../src/components/topBar";
 import { TextInput as PaperInput } from "react-native-paper";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import BarraProgresso from "../../src/components/barra_progresso";
-import { formatCPF } from "../../src/utils/formatarCpf";
-import { solicitarRecuperacaoSenha } from "../../src/services/recuperacaoSenha";
+import { supabase } from "../../src/services/supabase";
 import { alertar } from "../../src/utils/alerta";
 import { useTheme } from "../../src/contexts/ThemeContext";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 export default function Recuperar() {
   const { theme } = useTheme();
   const styles = Recuperar_Styles(theme);
-  const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
+  const [erroEmail, setErroEmail] = useState(false);
+  const [mensagemErro, setMensagemErro] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  async function handleProximo() {
-    const cleanCpf = cpf.replace(/\D/g, "");
-    if (!cpf || cleanCpf.length !== 11) {
-      alertar("Atenção", "Digite um CPF válido com 11 dígitos.");
+  const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  async function handleEnviarLink() {
+    const emailLimpo = email.trim().toLowerCase();
+
+    // 1. Validação de formato do e-mail
+    if (!emailLimpo || !regexEmail.test(emailLimpo)) {
+      setMensagemErro("Digite um e-mail válido. Exemplo: nome@email.com");
+      setErroEmail(true);
       return;
     }
 
+    setErroEmail(false);
+    setMensagemErro("");
     setLoading(true);
-    try {
-      const { error } = await solicitarRecuperacaoSenha(cleanCpf);
 
-      if (error) {
-        console.error("Erro ao chamar função:", error);
-        alertar("Erro", "Não foi possível enviar o e-mail. Tente novamente mais tarde.");
-      } else {
-        alertar(
-          "Sucesso",
-          "Um e-mail de recuperação foi enviado para o usuário com esse CPF, se existir.",
-          () =>
-            router.push({
-              pathname: "/recuperarSenha/validar",
-              params: { cpf: cleanCpf },
-            })
-        );
+    try {
+      // 2. Validação no Banco de Dados: Verifica se o e-mail está cadastrado na tabela paciente
+      const { data: paciente, error: erroConsulta } = await supabase
+        .from("paciente")
+        .select("id")
+        .eq("email", emailLimpo)
+        .maybeSingle();
+
+      if (erroConsulta) {
+        console.error("Erro ao verificar e-mail:", erroConsulta);
       }
-    } catch (err) {
+
+      // Se não encontrar o e-mail no banco, aciona o estado de erro
+      if (!paciente) {
+        setMensagemErro("Este e-mail não está cadastrado na base de dados.");
+        setErroEmail(true);
+        setLoading(false);
+        return;
+      }
+
+      // 3. Se o e-mail existe no banco, dispara o reset de senha pelo Supabase Auth
+      const { error: erroReset } = await supabase.auth.resetPasswordForEmail(emailLimpo, {
+        redirectTo: `${window.location.origin}/recuperarSenha/alterar`,
+      });
+
+      if (erroReset) {
+        console.error("Erro ao enviar e-mail de recuperação:", erroReset);
+        throw erroReset;
+      }
+
+      // Avança para a tela de confirmação repassando o e-mail
+      router.push({
+        pathname: "/recuperarSenha/validar",
+        params: { email: emailLimpo },
+      });
+    } catch (err: any) {
       console.error("Erro inesperado:", err);
-      alertar("Erro", "Ocorreu um erro inesperado. Tente novamente.");
+      alertar("Erro", err?.message || "Ocorreu um erro inesperado ao enviar o e-mail. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -53,47 +81,76 @@ export default function Recuperar() {
   return (
     <View style={styles.container}>
       <Top_Bar />
-      <BarraProgresso etapaAtual={1} totalEtapas={3}/>
+      <BarraProgresso etapaAtual={1} totalEtapas={3} />
 
       <View style={styles.box}>
         <View style={styles.conteudo}>
-          <Text style={styles.titulo}>Recuperação de Senha</Text>
+          <Text style={styles.titulo}>Recuperar senha</Text>
           <Text style={styles.subtitulo}>
-            Digite seu CPF para receber um código de verificação
+            Digite o e-mail da sua conta. Vamos enviar um link para você criar uma nova senha.
           </Text>
 
-          <Text style={styles.label}>CPF</Text>
+          <Text style={[styles.label, erroEmail && { color: "#d32f2f" }]}>E-mail</Text>
+          
           <PaperInput
             mode="outlined"
-            label={<Text style={{ color: theme.placeholder }}>CPF</Text>}
-            value={formatCPF(cpf)}
-            onChangeText={(text) => setCpf(text.replace(/\D/g, '').slice(0, 11))}
-            placeholder="Digite seu CPF"
-            keyboardType="numeric"
-            activeOutlineColor={theme.primary}
+            label={<Text style={{ color: erroEmail ? "#d32f2f" : theme.placeholder }}>E-mail</Text>}
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text.replace(/\s/g, "").toLowerCase());
+              if (erroEmail) {
+                setErroEmail(false);
+                setMensagemErro("");
+              }
+            }}
+            placeholder="Ex.: nome@email.com"
+            placeholderTextColor={theme.placeholder}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            activeOutlineColor={erroEmail ? "#d32f2f" : theme.primary}
+            outlineColor={erroEmail ? "#d32f2f" : undefined}
             textColor={theme.text}
             style={styles.input}
             theme={{ roundness: 30 }}
+            error={erroEmail}
+            right={
+              erroEmail ? (
+                <PaperInput.Icon icon={() => <MaterialIcons name="error-outline" size={20} color="#d32f2f" />} />
+              ) : undefined
+            }
           />
 
+          {erroEmail && (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, marginBottom: 8 }}>
+              <MaterialIcons name="error-outline" size={14} color="#d32f2f" />
+              <Text style={{ color: "#d32f2f", fontSize: 12 }}>
+                {mensagemErro}
+              </Text>
+            </View>
+          )}
+
           <TouchableOpacity
-            style={styles.botao}
-            onPress={handleProximo}
+            style={[styles.botao, { marginTop: erroEmail ? 10 : 20 }, loading && { opacity: 0.7 }]}
+            onPress={handleEnviarLink}
             activeOpacity={0.7}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={theme.background} />
             ) : (
-              <Text style={styles.botao_text}>Próximo</Text>
+              <Text style={styles.botao_text}>Enviar link</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.replace("/auth/login")}
             activeOpacity={0.7}
+            style={{ marginTop: 15, alignItems: "center" }}
           >
-            <Text style={styles.link}>Voltar</Text>
+            <Text style={[styles.link, { color: theme.primary, fontWeight: "600" }]}>
+              Voltar para o login
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

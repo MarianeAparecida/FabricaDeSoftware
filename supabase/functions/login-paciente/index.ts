@@ -11,12 +11,21 @@ Deno.serve(handle(async (body) => {
   if (cpf.length !== 11 || !password) return json({ error: "Informe CPF e senha." });
 
   const email = await emailPorCpf(cpf);
-  if (!email) return json({ error: CREDENCIAIS_INVALIDAS });
+  if (!email) {
+    console.log("[LOGIN ERROR] CPF não encontrado na tabela paciente:", cpf);
+    return json({ error: "CPF não cadastrado na base de dados." });
+  }
 
   const { data, error } = await publicClient().auth.signInWithPassword({ email, password });
+  
   if (error || !data.session) {
-    if (error?.code === "email_not_confirmed") return json({ error: "Confirme seu e-mail antes de entrar." });
-    return json({ error: CREDENCIAIS_INVALIDAS });
+    console.log("[LOGIN ERROR] Erro do Supabase Auth:", error?.message, error?.code);
+    
+    if (error?.code === "email_not_confirmed" || error?.message?.toLowerCase().includes("email not confirmed")) {
+      return json({ error: "Sua conta ainda não foi confirmada. Verifique seu e-mail no Mailpit." });
+    }
+    
+    return json({ error: `Erro na autenticação: ${error?.message || CREDENCIAIS_INVALIDAS}` });
   }
 
   const meta = data.user.user_metadata ?? {};

@@ -1,6 +1,4 @@
-// Cadastro de paciente. Chamado por app/auth/validacao.tsx com { nome, cpf, email, senha }.
-// O app já faz a etapa de "código de verificação" na própria tela, então a conta
-// nasce com o e-mail confirmado.
+// Cadastro de paciente. Chamado por app/auth/cadastro.tsx com { nome, cpf, email, senha }.
 import { admin, handle, json, limparCpf } from "../_shared/utils.ts";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -26,35 +24,37 @@ Deno.serve(handle(async (body) => {
   if (!EMAIL_REGEX.test(email)) return json({ error: "E-mail inválido." });
   if (!SENHA_FORTE.test(senha)) return json({ error: "A senha não atende aos requisitos mínimos." });
 
-  // Duas buscas com .eq() em vez de .or(`...${email}`): o e-mail vem do usuário, e
-  // interpolado no filtro permitiria injetar condições (ex.: "x@y.z,cpf.like.1*")
-  // e descobrir CPFs de outros pacientes, já que esta função ignora o RLS.
   if (await existe("cpf", cpf)) return json({ error: "Este CPF já está cadastrado." });
   if (await existe("email", email)) return json({ error: "Este e-mail já está cadastrado." });
 
+  // 1. Cria a conta no Supabase Auth SEM confirmar o e-mail (email_confirm: false)
+  // O próprio Supabase dispara automaticamente o e-mail de confirmação para o Mailpit!
   const { data: criado, error: erroAuth } = await admin.auth.admin.createUser({
     email,
     password: senha,
-    email_confirm: true,
+    email_confirm: false,
     user_metadata: { display_name: nome, cpf },
   });
+  
   if (erroAuth || !criado.user) {
     if (erroAuth?.code === "email_exists") return json({ error: "Este e-mail já está cadastrado." });
     console.error(erroAuth);
-    return json({ error: "Não foi possível criar a conta." });
+    return json({ error: "Não foi possível criar a conta de autenticação." });
   }
 
+  // 2. Insere os dados na tabela paciente no banco de dados vinculando ao auth_user_id
   const { error: erroPaciente } = await admin.from("paciente").insert({
     auth_user_id: criado.user.id,
     nome,
     cpf,
     email,
   });
+  
   if (erroPaciente) {
-    // Desfaz a conta de autenticação para não deixar usuário sem paciente.
+    // Se falhar no banco, remove do auth para manter consistente
     await admin.auth.admin.deleteUser(criado.user.id);
     console.error(erroPaciente);
-    return json({ error: "Não foi possível criar a conta." });
+    return json({ error: "Não foi possível salvar os dados do paciente." });
   }
 
   return json({ ok: true });

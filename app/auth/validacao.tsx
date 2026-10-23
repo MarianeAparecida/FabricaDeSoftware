@@ -1,103 +1,85 @@
-import React, { useState, useContext, useEffect } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { Validacao_Styles } from "../../src/styles/validacaoStyles";
-import { Top_Bar } from "../../src/components/topBar";
-import { TextInput as PaperInput } from "react-native-paper";
-import { CadastroContext } from "../../src/contexts/CadastroContext";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../src/services/supabase";
-import { useRouter } from "expo-router";
 import { useTheme } from "../../src/contexts/ThemeContext";
 import { alertar } from "../../src/utils/alerta";
+import { Top_Bar } from "../../src/components/topBar";
+import { Validacao_Styles } from "../../src/styles/validacaoStyles";
 
 export default function Validacao() {
   const { theme } = useTheme();
   const styles = Validacao_Styles(theme);
-  const [codigo, setCodigo] = useState("");
-  const { cadastro, clearCadastro } = useContext(CadastroContext);
   const router = useRouter();
+  const params = useLocalSearchParams<{ email?: string }>();
+  
+  const email = params.email || "";
+  const [enviando, setEnviando] = useState(false);
 
-  if (!cadastro) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Carregando...</Text>
-      </View>
-    );
-  }
-
-  const { username, cpf, email, password } = cadastro;
-
-  function showError(message: string) {
-    console.error("[Validacao] showError:", message);
-    alertar("Erro", message);
-  }
-
-  async function handleProximo() {
-
-    if (codigo.length !== 6) return showError("O código deve ter 6 dígitos.");
-    if (codigo !== "123456") return showError("O código informado está incorreto. Use 123456 para teste.");
+  // Função para enviar/reenviar o e-mail de confirmação usando o método nativo do Supabase
+  async function handleReenviar() {
+    if (!email) {
+      return alertar("Erro", "E-mail não encontrado. Refaça o cadastro.");
+    }
 
     try {
-      const { data, error } = await supabase.functions.invoke("register-paciente", {
-        body: { nome: username, cpf, email, senha: password },
+      setEnviando(true);
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
       });
 
-      if (error || data?.error) return showError(error?.message || data?.error || "Falha ao registrar usuário.");
+      if (error) {
+        throw error;
+      }
 
-      alertar("Sucesso", "Conta criada com sucesso!", () => {
-        router.replace("/auth/login");
-        clearCadastro();
-      });
+      alertar("Sucesso", "E-mail de confirmação enviado! Verifique sua caixa de entrada ou o Mailpit.");
     } catch (err: any) {
-      console.error("[Validacao] handleProximo catch error:", err);
-      if (err?.message?.includes("fetch")) return showError("Falha de conexão. Verifique sua internet e tente novamente.");
-      return showError("Ocorreu um erro inesperado. Tente novamente.");
+      console.error("[Validacao] Erro ao enviar:", err);
+      alertar("Erro", err?.message || "Não foi possível enviar o e-mail.");
+    } finally {
+      setEnviando(false);
     }
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <Top_Bar />
       <View style={styles.container}>
-        <Top_Bar />
         <View style={styles.box}>
-          <Text style={styles.titulo}>Verificação</Text>
+          <Text style={styles.titulo}>Confirme seu e-mail</Text>
+          
           <Text style={styles.subtitulo}>
-            Insira o código de 6 dígitos enviado ao e-mail {email}
+            Sua conta foi cadastrada com sucesso! Para começar, clique no botão abaixo para disparar o link de ativação para o endereço:{"\n"}
+            <Text style={{ fontWeight: "bold", color: theme.text }}>{email || "seu endereço cadastrado"}</Text>
           </Text>
 
-          <Text style={styles.label}>Código</Text>
-          <PaperInput
-            mode="outlined"
-            value={codigo}
-            onChangeText={(text) => {
-              setCodigo(text.replace(/\D/g, "").slice(0, 6));
-            }}
-            placeholder="Digite o código"
-            keyboardType="numeric"
-            activeOutlineColor={theme.primary}
-            style={styles.input}
-            theme={{ roundness: 30 }}
-          />
+          <Text style={[styles.subtitulo, { marginTop: 8, marginBottom: 20 }]}>
+            Caso o e-mail não chegue na sua caixa de entrada ou no Mailpit local, basta clicar no botão novamente para reenviá-lo. Após receber, abra a mensagem e clique no link para ativar a sua conta.
+          </Text>
 
+          {/* Botão de Enviar / Reenviar E-mail */}
           <TouchableOpacity
-            style={styles.botao}
-            onPress={handleProximo}
+            style={[styles.botao, enviando && { opacity: 0.7 }]}
+            onPress={handleReenviar}
+            disabled={enviando}
             activeOpacity={0.7}
           >
-            <Text style={styles.botao_text}>Concluir</Text>
+            {enviando ? (
+              <ActivityIndicator color={theme.background} />
+            ) : (
+              <Text style={styles.botao_text}>Enviar / Reenviar e-mail de confirmação</Text>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.voltar} activeOpacity={0.7}>
-            <Text style={styles.voltar_text}>Reenviar o e-mail</Text>
-          </TouchableOpacity>
-
+          {/* Botão para ir direto ao login */}
           <TouchableOpacity
             style={styles.voltar}
-            onPress={() => {
-              router.back();
-            }}
+            onPress={() => router.replace("/auth/login")}
             activeOpacity={0.7}
           >
-            <Text style={styles.voltar_text}>Alterar e-mail</Text>
+            <Text style={styles.voltar_text}>Já confirmou? Ir para o Login</Text>
           </TouchableOpacity>
         </View>
       </View>

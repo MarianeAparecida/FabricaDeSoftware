@@ -37,13 +37,30 @@ export default function Login() {
       await signIn(cleanCpf, password);
       router.replace("/home");
     } catch (error: any) {
-      alertar("Erro ao entrar", error.message || "CPF ou senha incorretos.");
+      const mensagem = error?.message || error?.error || "";
+
+      // Intercepta e exibe a mensagem adequada para conta não confirmada
+      if (
+        mensagem.toLowerCase().includes("email not confirmed") ||
+        mensagem.toLowerCase().includes("não confirmado") ||
+        mensagem.toLowerCase().includes("não verificado") ||
+        mensagem.toLowerCase().includes("pending_verification")
+      ) {
+        alertar(
+          "E-mail pendente",
+          "Sua conta foi criada, mas o e-mail ainda não foi verificado. Acesse sua caixa de entrada/Mailpit e clique no link de ativação."
+        );
+      } else {
+        alertar("Erro ao entrar", mensagem || "CPF ou senha incorretos.");
+      }
     }
   }
+
   async function testeUser() {
     setCpf("12345678900");
     setPassword("ABC123!@#ab");
   }
+
   return (
     <View style={{ flex: 1 }}>
 

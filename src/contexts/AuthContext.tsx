@@ -42,6 +42,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (restored?.user) {
           const u = restored.user;
 
+          // Critério US-13: Se o e-mail não estiver confirmado, impede o acesso automático da sessão restaurada
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user && !session.user.email_confirmed_at) {
+            await Auth.clearSession();
+            await supabase.auth.signOut();
+            setLogged(false);
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+
           setUser({
             id: u.id,
             email: u.email ?? "",
@@ -82,6 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!session?.access_token) throw new Error("Falha ao criar sessão.");
 
       await supabase.auth.setSession(session);
+
+      // Critério US-13: Validar se o e-mail está confirmado após obter a sessão
+      const { data: sessionData } = await supabase.auth.getSession();
+      const emailConfirmado = sessionData?.session?.user?.email_confirmed_at;
+
+      if (!emailConfirmado) {
+        await supabase.auth.signOut();
+        throw new Error("Seu e-mail ainda não foi confirmado. Conclua a validação para acessar a conta.");
+      }
+
       await Auth.saveSession(session, user?.email ?? "");
 
       setUser({

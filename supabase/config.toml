@@ -222,7 +222,7 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -248,6 +248,10 @@ otp_expiry = 3600
 [auth.email.template.recovery]
 subject = "AgendaSUS - Redefinição de senha"
 content_path = "./supabase/templates/recuperacao.html"
+
+[auth.email.template.confirmation]
+subject = "AgendaSUS - Confirme seu e-mail"
+content_path = "./supabase/templates/confirmacao.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
