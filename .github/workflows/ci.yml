@@ -1,0 +1,81 @@
+# CI (US-18): confere todo PR e todo push na main antes de o código entrar.
+# Dois jobs rodam em paralelo:
+#   app   -> instala dependências, verifica os tipos (lint), roda testes unitários e gera o build web
+#   banco -> sobe o Supabase local do zero (migrations + seed) e roda os testes pgTAP
+# Nenhum secret é usado aqui: o build web recebe valores de mentira, porque só precisamos saber se ele compila.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Um push novo no mesmo PR cancela a execução antiga, que ficou desatualizada.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: App (lint, testes e build web)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js (com cache das dependências)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint (verificação de tipos do TypeScript)
+        run: npm run typecheck
+
+      - name: Testes unitários (configuração de SMTP)
+        run: npm run smtp:test
+
+      - name: Build web
+        env:
+          CI: 1
+          EXPO_NO_TELEMETRY: 1
+          # Valores de mentira: o app exige as variáveis para compilar, mas o CI não publica nada.
+          EXPO_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+        run: npx expo export --platform web --output-dir dist
+
+  banco:
+    name: Banco (testes pgTAP)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js (com cache das dependências)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # O Supabase CLI vem do package.json, na mesma versão que o time usa.
+      - name: Instalar dependências
+        run: npm ci
+
+      # Só o banco e a autenticação: o resto (Studio, Storage, Realtime...) não é usado pelos testes.
+      - name: Subir o Supabase local (migrations + seed)
+        run: >
+          npx supabase start
+          -x studio,imgproxy,storage-api,realtime,edge-runtime,logflare,vector,supavisor,postgres-meta,mailpit,postgrest,kong
+
+      - name: Testes do banco
+        run: npm run db:test
