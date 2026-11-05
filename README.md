@@ -1,5 +1,7 @@
 # Agendamento SUS Online
 
+[![CI](https://github.com/MarianeAparecida/FabricaDeSoftware/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/MarianeAparecida/FabricaDeSoftware/actions/workflows/ci.yml)
+
 [Documento com as especificações do projeto](https://docs.google.com/document/d/17JzTCo7LYkEA5B1WowKCUH6qqCqh-t1_/edit#heading=h.knpinbvkozm4)
 
 [Acesso das HU com os protótipos](https://docs.google.com/spreadsheets/d/1jKtuyUHv7XniL5sgp3FePg4-SvljHVftocVHPyPiOnQ/edit?gid=891834841#gid=891834841)
@@ -71,3 +73,16 @@ docker compose up --build -d
 ```
 
 Acesse `http://localhost:8080` (outra porta: `APP_PORT=8081 docker compose up --build -d`).
+
+# Integração contínua (CI)
+
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda no GitHub Actions a cada pull request para a `main`, a cada push na `main` e manualmente (aba Actions → CI → Run workflow). São dois jobs em paralelo:
+
+| Job | O que faz | Para rodar na sua máquina |
+|---|---|---|
+| App | Instala as dependências (`npm ci`, com cache), verifica os tipos do TypeScript, roda os testes unitários e gera o build web | `npm run typecheck`, `npm run smtp:test` e `npx expo export --platform web` |
+| Banco | Sobe o Supabase local do zero (migrations + seed) e roda os testes pgTAP | `npm run db:reset` e `npm run db:test` (Docker aberto) |
+
+O CI não usa secrets: o build web recebe uma URL e uma chave de mentira, só para conferir que compila. As Edge Functions (Deno) ficam fora do `typecheck`.
+
+Se um job falhar, o PR fica com um X vermelho. Clique em "Details" para ver qual passo falhou e rode o mesmo comando na sua máquina para reproduzir.
