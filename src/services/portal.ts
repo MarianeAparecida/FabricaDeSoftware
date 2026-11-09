@@ -33,6 +33,34 @@ export type MembroEquipe = {
     ativo: boolean;
 };
 
+export type Profissional = {
+    id?: number;
+    matricula: string;
+    nome: string;
+    especialidade: string;
+    crm: string;
+    ativo: boolean;
+    dias_atendimento: string[];
+    horario_atendimento: string;
+};
+
+export type CadastroProfissional = {
+    nome: string;
+    especialidade: string;
+    crm: string;
+    dias_atendimento: string[];
+    horario_atendimento: string;
+};
+
+export type AtualizarProfissional = {
+    matricula: string;
+    nome: string;
+    especialidade: string;
+    crm: string;
+    dias_atendimento: string[];
+    horario_atendimento: string;
+};
+
 /** Código que o banco devolve quando quem chama não é servidor ativo (ou não tem o perfil). */
 export const ACESSO_NEGADO = '42501';
 
@@ -77,12 +105,110 @@ export async function buscarAgenda(dia: string) {
     return { data: data as ConsultaAgenda[] | null, error: error ? { ...error, message: 'Não foi possível carregar a agenda.' } : null };
 }
 
+export async function cancelarConsultaPortal(consultaId: number, motivo: string) {
+    const { data, error } = await supabase.rpc('portal_cancelar_consulta', {
+        p_consulta_id: consultaId,
+        p_motivo: motivo,
+    });
+    if (error && error.code === 'PGRST202') {
+        return { error: { message: 'Aguardando implementação da função de cancelamento no banco de dados (RPC: portal_cancelar_consulta).' } };
+    }
+    return { 
+        data, 
+        error: error ? { ...error, message: error.message || 'Não foi possível cancelar a consulta.' } : null 
+    };
+}
+
+export async function remarcarConsultaPortal(consultaId: number, novaDataHora: string, motivo: string) {
+    const { data, error } = await supabase.rpc('portal_remarcar_consulta', {
+        p_consulta_id: consultaId,
+        p_nova_data_hora: novaDataHora,
+        p_motivo: motivo,
+    });
+    if (error && error.code === 'PGRST202') {
+        return { error: { message: 'Aguardando implementação da função de remarcação no banco de dados (RPC: portal_remarcar_consulta).' } };
+    }
+    return { 
+        data, 
+        error: error ? { ...error, message: error.message || 'Não foi possível remarcar a consulta.' } : null 
+    };
+}
+
 export async function atualizarStatus(consultaId: number, status: 'confirmada' | 'realizada' | 'faltou' | 'cancelada') {
-    const { error } = await supabase.rpc('portal_atualizar_status', { p_consulta_id: consultaId, p_status: status });
-    return { error };
+    const { data, error } = await supabase.rpc('portal_atualizar_status', { 
+        p_consulta_id: consultaId, 
+        p_status: status 
+    });
+
+    if (error && error.code === 'PGRST202') {
+        return { error: { message: 'Aguardando implementação da função de atualização de status no banco de dados (RPC: portal_atualizar_status).' } };
+    }
+
+    return { 
+        data, 
+        error: error ? { ...error, message: error.message || 'Não foi possível atualizar o status da consulta.' } : null 
+    };
 }
 
 export async function buscarEquipe() {
     const { data, error } = await supabase.rpc('portal_equipe');
     return { data: data as MembroEquipe[] | null, error: error ? { ...error, message: 'Não foi possível carregar a equipe.' } : null };
+}
+
+export async function buscarProfissionais() {
+    const { data, error } = await supabase.rpc('portal_profissionais');
+    if (error && error.code === 'PGRST202') {
+        const { data: equipe } = await buscarEquipe();
+        const fallback = (equipe || []).map((e: any, index: number) => ({
+            id: index + 1,
+            matricula: e.matricula,
+            nome: e.nome,
+            especialidade: e.perfil === 'gestor' ? 'Clínico Geral' : 'Enfermagem',
+            crm: e.matricula,
+            ativo: e.ativo,
+            dias_atendimento: ['S', 'T', 'Q', 'Q2', 'S2'],
+            horario_atendimento: '08:00 - 17:00',
+        }));
+        return { data: fallback as Profissional[], error: null };
+    }
+    return { data: data as Profissional[] | null, error };
+}
+
+export async function cadastrarProfissional(dados: CadastroProfissional) {
+    const { data, error } = await supabase.rpc('portal_cadastrar_profissional', {
+        p_nome: dados.nome,
+        p_especialidade: dados.especialidade,
+        p_crm: dados.crm,
+        p_dias: dados.dias_atendimento,
+        p_horario: dados.horario_atendimento,
+    });
+    if (error && error.code === 'PGRST202') {
+        return { error: { message: 'Aguardando implementação da função de cadastro no banco de dados (RPC: portal_cadastrar_profissional).' } };
+    }
+    return { data, error: error ? { ...error, message: error.message || 'Erro ao cadastrar profissional.' } : null };
+}
+
+export async function atualizarProfissional(dados: AtualizarProfissional) {
+    const { data, error } = await supabase.rpc('portal_atualizar_profissional', {
+        p_matricula: dados.matricula,
+        p_nome: dados.nome,
+        p_especialidade: dados.especialidade,
+        p_crm: dados.crm,
+        p_dias: dados.dias_atendimento,
+        p_horario: dados.horario_atendimento,
+    });
+    if (error && error.code === 'PGRST202') {
+        return { error: { message: 'Aguardando implementação da função de edição no banco de dados (RPC: portal_atualizar_profissional).' } };
+    }
+    return { data, error: error ? { ...error, message: error.message || 'Erro ao atualizar profissional.' } : null };
+}
+
+export async function desativarProfissional(matricula: string) {
+    const { data, error } = await supabase.rpc('portal_desativar_profissional', {
+        p_matricula: matricula,
+    });
+    if (error && error.code === 'PGRST202') {
+        return { error: { message: 'Aguardando implementação da função de desativação no banco de dados (RPC: portal_desativar_profissional).' } };
+    }
+    return { data, error: error ? { ...error, message: error.message || 'Não foi possível desativar o profissional.' } : null };
 }

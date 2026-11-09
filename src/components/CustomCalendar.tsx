@@ -1,21 +1,19 @@
 import React, { useState, useRef } from "react";
-import { View, Text, TouchableOpacity, PanResponder, Dimensions, ViewStyle } from "react-native";
+import { View, Text, TouchableOpacity, PanResponder, ViewStyle } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import moment from "moment";
 
 moment.locale("pt-br");
 
-// 📌 ESTILO DO CALENDÁRIO
-const SCREEN_WIDTH = Dimensions.get("window").width;
-
+// 📌 ESTILO DO CALENDÁRIO (Flexível para caber em modais ou telas)
 const calendario: ViewStyle = {
-    width: SCREEN_WIDTH * 0.95,
-    marginTop: 10,
-    marginBottom: 20,
+    width: "100%",
+    maxWidth: 320,
+    marginTop: 5,
+    marginBottom: 10,
     backgroundColor: "transparent",
     alignSelf: "center",
 };
-
 
 export default function CustomCalendar({
     selectedDate,
@@ -96,7 +94,7 @@ export default function CustomCalendar({
                     <AntDesign name="left" size={22} color={theme.primary} />
                 </TouchableOpacity>
 
-                <Text style={{ fontSize: 18, fontWeight: "bold", color: theme.text }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold", color: theme.text }}>
                     {currentMonth.format("MMMM YYYY").replace(/^\w/, c => c.toUpperCase())}
                 </Text>
 
@@ -121,10 +119,11 @@ export default function CustomCalendar({
                     <Text
                         key={d}
                         style={{
-                            width: 30,
+                            width: 32,
                             textAlign: "center",
                             color: theme.text,
-                            fontWeight: "bold"
+                            fontWeight: "bold",
+                            fontSize: 13
                         }}
                     >
                         {d}
@@ -139,7 +138,7 @@ export default function CustomCalendar({
                     style={{
                         flexDirection: "row",
                         justifyContent: "space-around",
-                        marginBottom: 6
+                        marginBottom: 4
                     }}
                 >
                     {week.map((d, di) => {
@@ -178,7 +177,8 @@ export default function CustomCalendar({
                                                 : isToday
                                                     ? theme.success
                                                     : theme.text,
-                                        fontWeight: "600"
+                                        fontWeight: "600",
+                                        fontSize: 13
                                     }}
                                 >
                                     {d.date()}
